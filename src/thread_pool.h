@@ -19,7 +19,8 @@ typedef enum {
 } thread_pool_error_t;
 
 typedef enum {
-    direct_shutdown = 1
+    urgent_shutdown   = 1,
+    complete_shutdown = 2
 } thread_pool_shutdown_t;
 
 
@@ -27,6 +28,6 @@ thread_pool_t * thread_pool_init(size_t thread_count, size_t queue_size);
 
 int thread_pool_add(thread_pool_t *tpool, void (* work)(void *), void *args);
 
-int thread_pool_kill(thread_pool_t *tpool);
+int thread_pool_kill(thread_pool_t *tpool, int killtype);
 
 #endif

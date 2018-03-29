@@ -1,3 +1,7 @@
+# Debugging
+.gdb_history
+peda*
+
 # Prerequisites
 *.d
 
