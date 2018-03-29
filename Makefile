@@ -13,13 +13,13 @@ TARGETS = tests/thread_pool_test src/main
 all: $(TARGETS)
 
 src/thread_pool.o: src/thread_pool.c src/thread_pool.h
-src/server.o: src/server.c src/server.h
-src/main.o: src/main.c src/server.h
+src/server.o: src/server.c src/server.h src/thread_pool.h
+src/main.o: src/main.c src/server.h src/thread_pool.h
 
 tests/thread_pool_test.o: tests/thread_pool_test.c src/thread_pool.h
 
 tests/thread_pool_test: tests/thread_pool_test.o src/thread_pool.o
-src/main: src/main.o src/server.o
+src/main: src/main.o src/server.o src/thread_pool.o
 
 .PHONY: clean
 clean:

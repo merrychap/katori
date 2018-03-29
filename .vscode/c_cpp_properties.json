@@ -34,7 +34,8 @@
                 "/usr/lib/llvm-3.8/lib/clang/3.8.1/include",
                 "/usr/include/x86_64-linux-gnu",
                 "/usr/include",
-                "${workspaceFolder}/src"
+                "${workspaceFolder}/src",
+                "/usr/include/netinet"
             ],
             "defines": [],
             "intelliSenseMode": "clang-x64",
