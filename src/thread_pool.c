@@ -114,6 +114,8 @@ thread_pool_t * thread_pool_init(size_t thread_count, size_t queue_size) {
 
 
 int thread_pool_add(thread_pool_t *tpool, void (* work)(void *), void *args) {
+    int err_code = 0;
+    
     if (tpool == NULL || work == NULL) return thread_pool_error;
     if (pthread_mutex_lock(&(tpool->lock)) != 0) return thread_pool_lock_error;
 
@@ -121,16 +123,40 @@ int thread_pool_add(thread_pool_t *tpool, void (* work)(void *), void *args) {
 
     size_t next = (queue->tail + 1) % queue->size;
 
-    if (queue->size == queue->wcount) return thread_pool_queue_full;
-    if (tpool->shutdown)              return thread_pool_shutdown;
+    if (queue->size == queue->wcount) { err_code = thread_pool_queue_full; goto exit; }
+    if (tpool->shutdown)              { err_code = thread_pool_shutdown;   goto exit; }
 
     queue->works[queue->tail].task = work;
     queue->works[queue->tail].args = args;
     queue->tail = next;
     queue->wcount++;
 
-    if (pthread_cond_signal( &(tpool->cond)) != 0) return thread_pool_lock_error;
-    if (pthread_mutex_unlock(&(tpool->lock)) != 0) return thread_pool_lock_error;
+    if (pthread_cond_signal( &(tpool->cond)) != 0) err_code = thread_pool_lock_error;
+    
+exit:    
+    if (pthread_mutex_unlock(&(tpool->lock)) != 0) err_code = thread_pool_lock_error;
+    return err_code;
+}
 
-    return 0;
+
+int thread_pool_kill(thread_pool_t *tpool) {
+    int err_code = 0;
+
+    if (tpool == NULL) return thread_pool_error;
+    if (pthread_mutex_lock(&(tpool->lock)) != 0) return thread_pool_lock_error;
+    
+    if (tpool->shutdown) { err_code = thread_pool_shutdown; goto exit; }
+
+    tpool->shutdown = direct_shutdown;
+
+    if (pthread_cond_broadcast(&(tpool->cond)) != 0) { err_code = thread_pool_lock_error; goto exit; }
+    if (pthread_mutex_unlock(  &(tpool->lock)) != 0) { err_code = thread_pool_lock_error; goto exit; }
+
+    for (size_t i = 0; i < tpool->workers_count; i++) {
+        if (pthread_join(tpool->workers[i], NULL) != 0) err_code = thread_pool_thread_error;
+    }
+
+exit:
+    if (err_code == 0) thread_pool_free(tpool);
+    return err_code;
 }
