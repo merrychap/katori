@@ -21,18 +21,6 @@ tests/thread_pool_test.o: tests/thread_pool_test.c src/thread_pool.h
 tests/thread_pool_test: tests/thread_pool_test.o src/thread_pool.o
 src/main: src/main.o src/server.o
 
-# shared: libthreadpool.so
-# static: libthreadpool.a
-
-# libthreadpool.so: src/thread_pool.c src/thread_pool.h
-# 	$(CC) -shared -fPIC ${CFLAGS} -o $@ $< ${LDLIBS}
-
-# src/libthreadpool.o: src/thread_pool.c src/thread_pool.h
-# 	$(CC) -c -fPIC ${CFLAGS} -o $@ $<
-
-# libthreadpool.a: src/libthreadpool.o
-# 	ar rcs $@ $^
-
 .PHONY: clean
 clean:
 	rm -f $(TARGETS) *~ */*~ */*.o
