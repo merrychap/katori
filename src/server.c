@@ -9,6 +9,7 @@
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <sys/uio.h>
+#include <pthread.h>
 
 #include "server.h"
 #include "thread_pool.h"
@@ -20,13 +21,15 @@
 
 struct server_t {
     int socket_fd;
-    char *buffer;
+    unsigned char *buffer;
     
     thread_pool_t *tpool;
 };
 
 
 typedef struct {
+    pthread_mutex_t lock;
+    
     size_t icmp;
     size_t tcp;
     size_t udp;
@@ -41,11 +44,15 @@ typedef struct {
 } packet_arg_t;
 
 
+sniffer_t * sniffer_create();
+int sniffer_destroy(sniffer_t *sniffer);
+
+
 // don't forget to free this pointer!
 char ** get_all_interfaces() {
     size_t index = 0;
 
-    char **inf_names = (char *) malloc(INTERFACES_COUNT * sizeof(char *));
+    char **inf_names = (char **) malloc(INTERFACES_COUNT * sizeof(char *));
     
     ifaddrs_t *addrs    = 0;
     ifaddrs_t *tmp_addr = 0;
@@ -65,9 +72,11 @@ char ** get_all_interfaces() {
 }
 
 
-int process_packet(void *packet_struct) {
+void process_packet(void *packet_struct) {
     packet_arg_t *packet = (packet_arg_t *) packet_struct;
     sniffer_t *sniffer   = packet->sniffer;
+
+    pthread_mutex_lock(&(sniffer->lock));
 
     struct iphdr *ip_header = (struct iphdr *) (packet->buffer + sizeof(struct ethhdr));
     
@@ -86,6 +95,7 @@ int process_packet(void *packet_struct) {
             break;
     }
     printf("TCP : %d   UDP : %d   ICMP : %d   Others : %d\r", sniffer->tcp, sniffer->udp, sniffer->icmp, sniffer->others);
+    pthread_mutex_unlock(&(sniffer->lock));
 }
 
 
@@ -94,10 +104,10 @@ server_t * server_create() {
     
     if (server == NULL) return NULL;
 
-    server->socket_fd = socket(AF_INET, SOCK_RAW, htons(ETH_P_ALL));
+    server->socket_fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
     if (server->socket_fd < 0) { server_destroy(server); return NULL; }
 
-    server->buffer = (char *) malloc(BUF_SIZE);
+    server->buffer = (unsigned char *) malloc(BUF_SIZE);
 
     server->tpool = thread_pool_init(MAX_THREADS, QUEUE_SIZE);
 
@@ -107,16 +117,22 @@ server_t * server_create() {
 
 int server_run(server_t *server) {
     struct sockaddr saddr;
+    int saddr_size = 0;
+    
+    memset(&saddr, 0, sizeof(saddr));
+
     packet_arg_t packet;
     
-    int saddr_size = sizeof(saddr);
     int data_size  = 0;
     int err_code   = 0;
 
-    sniffer_t *sniffer = (sniffer_t *) malloc(sizeof(sniffer_t));
+    sniffer_t *sniffer = sniffer_create();
+    if (sniffer == NULL) return sniffer_create_failure;
 
     while (1) {
-        data_size = recvfrom(server->socket_fd, server->buffer, BUF_SIZE, 0, &saddr, (socklen_t *)&saddr_size);
+        saddr_size = sizeof(saddr);
+        data_size = recvfrom(server->socket_fd, server->buffer, BUF_SIZE, 0, &saddr, (socklen_t*)&saddr_size);
+        
         if (data_size < 0) { err_code = server_recv_error; break; }
         
         packet.buffer  = server->buffer;
@@ -126,7 +142,8 @@ int server_run(server_t *server) {
         thread_pool_add(server->tpool, &process_packet, &packet);
     }
 
-    server_destroy(server);
+    server_destroy (server);
+    sniffer_destroy(sniffer);
 
     return err_code;
 }
@@ -140,5 +157,29 @@ int server_destroy(server_t *server) {
     thread_pool_kill(server->tpool, complete_shutdown);
     
     free(server);
+    return 0;
+}
+
+
+sniffer_t * sniffer_create() {
+    sniffer_t *sniffer = (sniffer_t *) malloc(sizeof(sniffer_t));
+    
+    if (pthread_mutex_init(&(sniffer->lock), NULL) != 0) return NULL;
+
+    sniffer->icmp   = 0;
+    sniffer->tcp    = 0;
+    sniffer->udp    = 0;
+    sniffer->others = 0;
+    
+    return sniffer;
+}
+
+
+int sniffer_destroy(sniffer_t *sniffer) {
+    if (sniffer == NULL) return -1;
+
+    pthread_mutex_destroy(&(sniffer->lock));
+    free(sniffer);
+
     return 0;
 }

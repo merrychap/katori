@@ -11,7 +11,8 @@ typedef struct ifaddrs  ifaddrs_t;
 
 
 typedef enum {
-    server_recv_error = 1
+    server_recv_error      = -1,
+    sniffer_create_failure = -2
 } server_error_t;
 
 
