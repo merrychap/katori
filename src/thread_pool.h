@@ -1,8 +1,8 @@
-#include <stdlib.h>
-
-
 #ifndef _THREAD_POOL_H
 #define _THREAD_POOL_H
+
+
+#include <stdlib.h>
 
 #define MAX_THREADS 64
 #define QUEUE_SIZE  65536
@@ -29,5 +29,6 @@ thread_pool_t * thread_pool_init(size_t thread_count, size_t queue_size);
 int thread_pool_add(thread_pool_t *tpool, void (* work)(void *), void *args);
 
 int thread_pool_kill(thread_pool_t *tpool, int killtype);
+
 
 #endif

@@ -1,19 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
+
 #include "server.h"
+#include "cli.h"
 
 
 int main(int argc, char **argv) {
-    fprintf(stderr, "[*] Staring a sniffer...\n");
-    
-    server_t *server = server_create();
-
-    if (server == NULL) {
-        fprintf(stderr, "[-] Error occured.\n");
-        exit(1);
+    user_settings_t *settings = settings_setup();
+    if (settings == NULL) {
+        fprintf(stderr, "[-] Error while configuring settings.\n");
+        return setup_error;
     }
-    
-    server_run(server);
+
+    start_prompt(settings);
 
     return 0;
 }

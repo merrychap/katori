@@ -23,6 +23,9 @@ struct server_t {
     int socket_fd;
     unsigned char *buffer;
     
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+    
     thread_pool_t *tpool;
 };
 
@@ -67,7 +70,6 @@ char ** get_all_interfaces() {
     }
     
     freeifaddrs(addrs);
-
     return inf_names;
 }
 
@@ -94,7 +96,7 @@ void process_packet(void *packet_struct) {
             sniffer->others++;
             break;
     }
-    printf("TCP : %d   UDP : %d   ICMP : %d   Others : %d\r", sniffer->tcp, sniffer->udp, sniffer->icmp, sniffer->others);
+    printf("TCP : %lu   UDP : %lu   ICMP : %lu   Others : %lu\r", sniffer->tcp, sniffer->udp, sniffer->icmp, sniffer->others);
     pthread_mutex_unlock(&(sniffer->lock));
 }
 
@@ -105,11 +107,11 @@ server_t * server_create() {
     if (server == NULL) return NULL;
 
     server->socket_fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+    
     if (server->socket_fd < 0) { server_destroy(server); return NULL; }
 
     server->buffer = (unsigned char *) malloc(BUF_SIZE);
-
-    server->tpool = thread_pool_init(MAX_THREADS, QUEUE_SIZE);
+    server->tpool  = thread_pool_init(MAX_THREADS, QUEUE_SIZE);
 
     return server;
 }
@@ -129,6 +131,7 @@ int server_run(server_t *server) {
     sniffer_t *sniffer = sniffer_create();
     if (sniffer == NULL) return sniffer_create_failure;
 
+    // TODO add conditional variable for correct quiting
     while (1) {
         saddr_size = sizeof(saddr);
         data_size = recvfrom(server->socket_fd, server->buffer, BUF_SIZE, 0, &saddr, (socklen_t*)&saddr_size);
@@ -179,7 +182,7 @@ int sniffer_destroy(sniffer_t *sniffer) {
     if (sniffer == NULL) return -1;
 
     pthread_mutex_destroy(&(sniffer->lock));
+    
     free(sniffer);
-
     return 0;
 }
