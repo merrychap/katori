@@ -11,6 +11,9 @@
 #include <sys/uio.h>
 #include <pthread.h>
 
+#include <fcntl.h>
+#include <unistd.h>
+
 #include "server.h"
 #include "thread_pool.h"
 
@@ -30,14 +33,14 @@ struct server_t {
 };
 
 
-typedef struct {
+struct sniffer_t {
     pthread_mutex_t lock;
     
     size_t icmp;
     size_t tcp;
     size_t udp;
     size_t others;
-} sniffer_t;
+};
 
 
 typedef struct {
@@ -52,10 +55,10 @@ int sniffer_destroy(sniffer_t *sniffer);
 
 
 // don't forget to free this pointer!
-char ** get_all_interfaces() {
+interface_t * get_all_interfaces(size_t *size) {
     size_t index = 0;
 
-    char **inf_names = (char **) malloc(INTERFACES_COUNT * sizeof(char *));
+    interface_t *inf_names = (interface_t *) malloc(INTERFACES_COUNT * sizeof(interface_t));
     
     ifaddrs_t *addrs    = 0;
     ifaddrs_t *tmp_addr = 0;
@@ -65,12 +68,22 @@ char ** get_all_interfaces() {
 
     while (tmp_addr) {
         if (tmp_addr->ifa_addr && tmp_addr->ifa_addr->sa_family == AF_PACKET)
-            inf_names[index++] = tmp_addr->ifa_name;
+            inf_names[index++].name = tmp_addr->ifa_name;
         tmp_addr = tmp_addr->ifa_next;
     }
     
+    *size = index;
+
     freeifaddrs(addrs);
     return inf_names;
+}
+
+
+int remove_interfaces(interface_t *interfaces, const size_t size) {
+    for (size_t i = 0; i < size; i++)
+        interfaces[i].name = 0;
+    free(interfaces);
+    return 0;
 }
 
 
@@ -101,7 +114,7 @@ void process_packet(void *packet_struct) {
 }
 
 
-server_t * server_create() {
+server_t * server_create(user_settings_t *settings) {
     server_t  *server  = (server_t *)  malloc(sizeof(server_t));
     
     if (server == NULL) return NULL;
@@ -153,12 +166,15 @@ int server_run(server_t *server) {
 
 
 int server_destroy(server_t *server) {
-    if (server->socket_fd) close(server->socket_fd);
+    if (server == NULL) return -1;
     
-    free(server->buffer);
+    if (server->socket_fd >= 0) {
+        if (shutdown(server->socket_fd, SHUT_RDWR) < 0) perror("shutdown");
+        if (close(server->socket_fd) < 0) perror("close");
+    }
     
+    if (server->buffer != NULL) free(server->buffer);
     thread_pool_kill(server->tpool, complete_shutdown);
-    
     free(server);
     return 0;
 }

@@ -7,13 +7,13 @@
 
 
 int main(int argc, char **argv) {
-    user_settings_t *settings = settings_setup();
-    if (settings == NULL) {
+    int err_code = start_prompt();
+
+    if (err_code == setup_error)
         fprintf(stderr, "[-] Error while configuring settings.\n");
-        return setup_error;
-    }
-
-    start_prompt(settings);
-
+    
+    if (err_code == sniffer_start_error)
+        fprintf(stderr, "[-] Error while starting a sniffer.\n");
+    
     return 0;
 }

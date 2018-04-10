@@ -7,8 +7,22 @@
 #include <ifaddrs.h>
 
 
-typedef struct server_t server_t;
-typedef struct ifaddrs  ifaddrs_t;
+typedef struct server_t        server_t;
+typedef struct sniffer_t       sniffer_t;
+typedef struct interface_t     interface_t;
+typedef struct user_settings_t user_settings_t;
+typedef struct ifaddrs         ifaddrs_t;
+
+
+struct interface_t {
+    char *name;
+};
+
+
+struct user_settings_t {
+    int mode;
+    interface_t *interface;
+};
 
 
 typedef enum {
@@ -17,9 +31,11 @@ typedef enum {
 } server_error_t;
 
 
-char **get_all_interfaces();
+interface_t *get_all_interfaces(size_t *size);
 
-server_t * server_create();
+int remove_interfaces(interface_t *interfaces, const size_t size);
+
+server_t * server_create(user_settings_t *settings);
 
 int server_run(server_t *server);
 

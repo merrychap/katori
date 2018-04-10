@@ -1,61 +1,56 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
+#include <string.h>
 
 #include "cli.h"
-#include "server.h"
+#include "spoofing.h"
+#include "sniffing.h"
 
 
-struct user_settings_t {
-    int mode;
-};
+void print_welcome_header() {
+    fprintf(stdout, COLOR_YELLOW "/////////////////////////\n" COLOR_RESET);
+    fprintf(stdout, COLOR_BLUE "   katori " COLOR_RESET "greets you!\n");
+    fprintf(stdout, COLOR_YELLOW "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n" COLOR_RESET);
+}
 
 
-void * thread_start_server() {
-    fprintf(stderr, "[*] Starting a sniffer...\n");
-    
-    server_t *server = server_create();
+void print_main_menu() {
+    fprintf(stdout, "\n=================================\n");
+    fprintf(stdout, "    [1] Sniffing mode.\n");
+    fprintf(stdout, "    [2] Spoofing mode (isn't implemented yet).\n");
+    fprintf(stdout, "    [3] Exit.\n");
+    fprintf(stdout, "=================================\n");
+    fprintf(stdout, "Choice: ");
+}
 
-    if (server == NULL) {
-        fprintf(stderr, "[-] Error occured.\n");
-        goto exit_thread;
+
+int start_prompt() {
+    int err_code   = 0;
+    int choice     = 0;
+    int exit_flag  = 0;
+
+    print_welcome_header();    
+
+    while (!exit_flag) {
+        print_main_menu();
+        
+        choice = input_choice();
+        printf("\n");
+
+        switch (choice) {
+            case 1:
+                sniffing_mode();
+                break;
+            case 2:
+                spoofing_mode();
+                break;
+            case 3:
+                exit_flag = 1;
+                break;
+            default:
+                print_invalid_option();
+                break;
+        }
     }
-    
-    server_run(server);
-
-exit_thread:
-    pthread_exit(NULL);
-    return (NULL);
+    return err_code;
 }
-
-
-user_settings_t * settings_setup() {
-    user_settings_t * settings = 0;
-
-    char *interface = set_interface();
-    if (interface == NULL) return NULL;
-
-    // TODO set other params
-
-    return NULL;
-}
-
-
-int start_prompt(user_settings_t *settings) {
-    pthread_t thread;
-
-    if (pthread_create(&thread, NULL, thread_start_server, NULL) != 0) {
-        fprintf(stderr, "[-] Error while starting a sniffer.\n");
-        return sniffer_start_error;
-    }
-    return 0;
-}
-
-
-char * set_interface() {
-    char **interfaces = get_all_interfaces();
-    free(interfaces);
-
-    return NULL;
-}
-
