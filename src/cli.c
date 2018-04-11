@@ -7,14 +7,14 @@
 #include "sniffing.h"
 
 
-void print_welcome_header() {
+static void print_welcome_header() {
     fprintf(stdout, COLOR_YELLOW "/////////////////////////\n" COLOR_RESET);
     fprintf(stdout, COLOR_BLUE "   katori " COLOR_RESET "greets you!\n");
     fprintf(stdout, COLOR_YELLOW "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n" COLOR_RESET);
 }
 
 
-void print_main_menu() {
+static void print_main_menu() {
     fprintf(stdout, "\n=================================\n");
     fprintf(stdout, "    [1] Sniffing mode.\n");
     fprintf(stdout, "    [2] Spoofing mode (isn't implemented yet).\n");

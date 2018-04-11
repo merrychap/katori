@@ -1,8 +1,3 @@
-/*
-* Most of the code are taken from https://github.com/mbrossard/threadpool and 
-* a little bit changed
-*/
-
 #include <pthread.h>
 
 #include "thread_pool.h"

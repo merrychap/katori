@@ -6,8 +6,6 @@
 #include "cli_utils.h"
 
 
-void print_spoofing_menu();
-
 int spoofing_mode();
 
 

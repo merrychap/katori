@@ -1,16 +1,21 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "sniffing.h"
 
 
-void print_sniffing_header() {
+#define SLEEP 10000
+
+
+static void print_sniffing_header() {
     fprintf(stdout, COLOR_CYAN "-->" COLOR_RESET " Sniffing mode.\n");
 }
 
 
-void print_sniffing_menu() {
+static void print_sniffing_menu() {
     fprintf(stdout, "\n=================================\n");
     fprintf(stdout, "   [1] Setting up.\n");
     fprintf(stdout, "   [2] Start sniffer.\n");
@@ -22,7 +27,7 @@ void print_sniffing_menu() {
 }
 
 
-interface_t * set_interface() {
+static interface_t * set_interface() {
     size_t size  = 0;
     size_t index = 0;
     interface_t *interface  = (interface_t *) malloc(sizeof(interface_t));
@@ -43,14 +48,7 @@ interface_t * set_interface() {
 }
 
 
-int remove_interface(interface_t *interface) {
-    interface->name = 0;
-    free(interface);
-    return 0;
-}
-
-
-int remove_settings(user_settings_t *settings) {
+static int remove_settings(user_settings_t *settings) {
     if (settings) {
         remove_interface(settings->interface);
         free(settings);
@@ -59,7 +57,7 @@ int remove_settings(user_settings_t *settings) {
 }
 
 
-user_settings_t * setting_up() {
+static user_settings_t * setting_up() {
     user_settings_t * settings = (user_settings_t *) malloc(sizeof(user_settings_t));
 
     if (settings == NULL) return NULL;
@@ -73,17 +71,28 @@ user_settings_t * setting_up() {
 }
 
 
-int monitor(server_t *server) {
-    fprintf(stdout, "[*] Type Ctrl+D to back.\n");
+static int monitor(server_t *server) {
+    if (server == NULL) return null_server_error;
+
+    char key = 0;
     
-    while (getchar() != EOF) {
-        fprintf(stdout, "[*] Some debug output\n");
-    }
+    fprintf(stdout, "[*] Type <q> to back.\n");
+    
+    term_nonblocking();
+    
+    do {
+        printf("TCP : %lu   UDP : %lu   ICMP : %lu   Others : %lu\r", server->sniffer->tcp, server->sniffer->udp, server->sniffer->icmp, server->sniffer->others);
+        usleep(SLEEP);
+        key = getchar();
+    } while (1 && key != 'q');
+    
+    term_reset();
+    
     return 0;
 }
 
 
-int exit_sniffing_mode(server_t *server, user_settings_t *settings) {
+static int exit_sniffing_mode(server_t *server, user_settings_t *settings) {
     server_destroy(server);
     remove_settings(settings);
     return 0;
@@ -110,16 +119,16 @@ int sniffing_mode() {
             case 1: // Setting up
                 settings = setting_up();
                 server   = server_create(settings);
-                if (server == NULL) fprintf(stderr, "\n[-] Error while configuring the server. Try to user sudo.\n\n");
+                if (server == NULL) fprintf(stderr, "\n[-] Error while configuring the server. Try to use sudo.\n\n");
                 break;
             case 2: // Start sniffer
                 server_run(server);
                 break;
             case 3: // Stop sniffer
-                server_destroy(server);
+                server->is_online = 0;
                 break;
             case 4: // Monitor
-                monitor(server);
+                if (monitor(server) != 0) fprintf(stderr, "\n[-] Setting up sniffer first!\n");
                 break;
             case 5: // Exit
                 exit_flag = 1;

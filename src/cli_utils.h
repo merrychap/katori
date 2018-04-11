@@ -11,10 +11,15 @@
 #define COLOR_RESET   "\x1b[0m"
 
 
-void input_string();
-int  input_choice();
+// char getche(void);
 
-void print_invalid_option();
+void term_reset(void);
+void term_nonblocking(void);
+
+void input_string(char *str, int size);
+int  input_choice(void);
+
+void print_invalid_option(void);
 
 
 #endif

@@ -22,27 +22,6 @@
 #define INTERFACES_COUNT 100
 
 
-struct server_t {
-    int socket_fd;
-    unsigned char *buffer;
-    
-    pthread_mutex_t mutex;
-    pthread_cond_t cond;
-    
-    thread_pool_t *tpool;
-};
-
-
-struct sniffer_t {
-    pthread_mutex_t lock;
-    
-    size_t icmp;
-    size_t tcp;
-    size_t udp;
-    size_t others;
-};
-
-
 typedef struct {
     sniffer_t *sniffer;
     unsigned char *buffer;
@@ -50,8 +29,8 @@ typedef struct {
 } packet_arg_t;
 
 
-sniffer_t * sniffer_create();
-int sniffer_destroy(sniffer_t *sniffer);
+static sniffer_t * sniffer_create();
+static int sniffer_destroy(sniffer_t *sniffer);
 
 
 // don't forget to free this pointer!
@@ -79,6 +58,13 @@ interface_t * get_all_interfaces(size_t *size) {
 }
 
 
+int remove_interface(interface_t *interface) {
+    interface->name = 0;
+    free(interface);
+    return 0;
+}
+
+
 int remove_interfaces(interface_t *interfaces, const size_t size) {
     for (size_t i = 0; i < size; i++)
         interfaces[i].name = 0;
@@ -87,7 +73,7 @@ int remove_interfaces(interface_t *interfaces, const size_t size) {
 }
 
 
-void process_packet(void *packet_struct) {
+static void process_packet(void *packet_struct) {
     packet_arg_t *packet = (packet_arg_t *) packet_struct;
     sniffer_t *sniffer   = packet->sniffer;
 
@@ -109,8 +95,40 @@ void process_packet(void *packet_struct) {
             sniffer->others++;
             break;
     }
-    printf("TCP : %lu   UDP : %lu   ICMP : %lu   Others : %lu\r", sniffer->tcp, sniffer->udp, sniffer->icmp, sniffer->others);
     pthread_mutex_unlock(&(sniffer->lock));
+}
+
+
+static void * __server_run(void * params) {
+    server_t *server = (server_t *) params;
+
+    struct sockaddr saddr;
+    int saddr_size = 0;
+    
+    memset(&saddr, 0, sizeof(saddr));
+
+    packet_arg_t packet;
+    
+    int data_size  = 0;
+    int err_code   = 0;
+
+    server->is_online = 1;
+
+    while (server->is_online) {
+        saddr_size = sizeof(saddr);
+        data_size = recvfrom(server->socket_fd, server->buffer, BUF_SIZE, 0, &saddr, (socklen_t*)&saddr_size);
+        
+        if (data_size < 0) { err_code = server_recv_error; break; }
+        
+        packet.buffer  = server->buffer;
+        packet.size    = data_size;
+        packet.sniffer = server->sniffer;
+        
+        thread_pool_add(server->tpool, &process_packet, &packet);
+    }
+    
+    pthread_exit(NULL);
+    return NULL;
 }
 
 
@@ -123,64 +141,55 @@ server_t * server_create(user_settings_t *settings) {
     
     if (server->socket_fd < 0) { server_destroy(server); return NULL; }
 
-    server->buffer = (unsigned char *) malloc(BUF_SIZE);
-    server->tpool  = thread_pool_init(MAX_THREADS, QUEUE_SIZE);
+    server->buffer  = (unsigned char *) malloc(BUF_SIZE);
+    server->tpool   = thread_pool_init(MAX_THREADS, QUEUE_SIZE);
+    server->sniffer = sniffer_create();
+
+    if (server->sniffer == NULL ||
+        server->tpool   == NULL ||
+        server->buffer  == NULL) return NULL;
+    server->is_online = 0;
 
     return server;
 }
 
 
 int server_run(server_t *server) {
-    struct sockaddr saddr;
-    int saddr_size = 0;
-    
-    memset(&saddr, 0, sizeof(saddr));
-
-    packet_arg_t packet;
-    
-    int data_size  = 0;
-    int err_code   = 0;
-
-    sniffer_t *sniffer = sniffer_create();
-    if (sniffer == NULL) return sniffer_create_failure;
-
-    // TODO add conditional variable for correct quiting
-    while (1) {
-        saddr_size = sizeof(saddr);
-        data_size = recvfrom(server->socket_fd, server->buffer, BUF_SIZE, 0, &saddr, (socklen_t*)&saddr_size);
-        
-        if (data_size < 0) { err_code = server_recv_error; break; }
-        
-        packet.buffer  = server->buffer;
-        packet.size    = data_size;
-        packet.sniffer = sniffer;
-        
-        thread_pool_add(server->tpool, &process_packet, &packet);
+    if (pthread_create(&(server->exec), NULL, __server_run, (void *)server) != 0) {
+        return server_run_error;
     }
 
-    server_destroy (server);
-    sniffer_destroy(sniffer);
-
-    return err_code;
-}
-
-
-int server_destroy(server_t *server) {
-    if (server == NULL) return -1;
-    
-    if (server->socket_fd >= 0) {
-        if (shutdown(server->socket_fd, SHUT_RDWR) < 0) perror("shutdown");
-        if (close(server->socket_fd) < 0) perror("close");
-    }
-    
-    if (server->buffer != NULL) free(server->buffer);
-    thread_pool_kill(server->tpool, complete_shutdown);
-    free(server);
     return 0;
 }
 
 
-sniffer_t * sniffer_create() {
+int server_destroy(server_t *server) {
+    int err_code = 0;
+    
+    if (server == NULL) return -1;
+
+    server->is_online = 0;
+    
+    if (pthread_join(server->exec, NULL) != 0) err_code = server_exec_join_error;
+
+    
+    if (server->socket_fd >= 0) {
+        // if (shutdown(server->socket_fd, SHUT_RDWR) < 0) perror("shutdown");
+        if (close(server->socket_fd) < 0) perror("close");
+    }
+    
+    if (server->buffer != NULL) free(server->buffer);
+    
+    thread_pool_kill(server->tpool, complete_shutdown);
+    sniffer_destroy(server->sniffer);
+
+    free(server);
+    
+    return 0;
+}
+
+
+static sniffer_t * sniffer_create() {
     sniffer_t *sniffer = (sniffer_t *) malloc(sizeof(sniffer_t));
     
     if (pthread_mutex_init(&(sniffer->lock), NULL) != 0) return NULL;
@@ -194,7 +203,7 @@ sniffer_t * sniffer_create() {
 }
 
 
-int sniffer_destroy(sniffer_t *sniffer) {
+static int sniffer_destroy(sniffer_t *sniffer) {
     if (sniffer == NULL) return -1;
 
     pthread_mutex_destroy(&(sniffer->lock));

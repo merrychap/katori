@@ -1,7 +1,7 @@
 #include "spoofing.h"
 
 
-void print_spoofing_menu() {
+static void print_spoofing_menu() {
 
 }
 

@@ -12,8 +12,10 @@ typedef struct user_settings_t user_settings_t;
 typedef struct interface_t     interface_t;
 
 
-void print_sniffing_header();
-void print_sniffing_menu();
+typedef enum {
+    null_server_error = -1
+} sniffing_mode_error_t;
+
 
 int sniffing_mode();
 
