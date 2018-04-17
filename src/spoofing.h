@@ -6,7 +6,7 @@
 #include "cli_utils.h"
 
 
-int spoofing_mode();
+int spoofing_mode(strbuf_t *strbuf);
 
 
 #endif

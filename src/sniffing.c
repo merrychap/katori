@@ -7,7 +7,7 @@
 #include "sniffing.h"
 
 
-#define SLEEP 10000
+#define SLEEP 5000
 
 
 static void print_sniffing_header() {
@@ -15,15 +15,16 @@ static void print_sniffing_header() {
 }
 
 
-static void print_sniffing_menu() {
+static void print_sniffing_menu() {    
+    system("clear");
+
     fprintf(stdout, "\n=================================\n");
-    fprintf(stdout, "   [1] Setting up.\n");
+    fprintf(stdout, "   [1] Change settings.\n");
     fprintf(stdout, "   [2] Start sniffer.\n");
     fprintf(stdout, "   [3] Stop sniffer.\n");
     fprintf(stdout, "   [4] Monitor.\n");
     fprintf(stdout, "   [5] Back.\n");
     fprintf(stdout, "\n=================================\n");
-    fprintf(stdout, "Choice: ");
 }
 
 
@@ -59,13 +60,10 @@ static int remove_settings(user_settings_t *settings) {
 
 static user_settings_t * setting_up() {
     user_settings_t * settings = (user_settings_t *) malloc(sizeof(user_settings_t));
+    interface_t     *interface = set_interface();
 
-    if (settings == NULL) return NULL;
+    if (settings == NULL || interface == NULL) return NULL;
 
-    interface_t *interface = set_interface();
-    if (interface == NULL) return NULL;
-
-    // TODO set other params
     settings->interface = interface;
     return settings;
 }
@@ -92,53 +90,59 @@ static int monitor(server_t *server) {
 }
 
 
-static int exit_sniffing_mode(server_t *server, user_settings_t *settings) {
-    server_destroy(server);
+static int prerun(server_t **server, strbuf_t *strbuf) {
+    if (*server != NULL) return server_already_created;
+    if (strbuf == NULL) return null_strbuf_error;
+
+    user_settings_t *settings = setting_up();
+    *server = server_create(settings);
+    if (*server == NULL) add_to_strbuf(strbuf, "\n[-] Error while configuring the server. Try to use sudo.\n\n");
+
     remove_settings(settings);
     return 0;
 }
 
 
-int sniffing_mode() {
-    server_t        *server   = 0;
-    user_settings_t *settings = 0;
-    
+int sniffing_mode(server_t **_server, strbuf_t *strbuf) {    
     int choice    = 0;
     int err_code  = 0;
     int exit_flag = 0;
+
+    size_t buf_size = 0;
+
+    prerun(_server, strbuf);
+    server_t *server = *_server;
 
     print_sniffing_header();
 
     while (!exit_flag) {
         print_sniffing_menu();
+        print_strbuf(strbuf);
 
         choice = input_choice();
         printf("\n");
 
         switch (choice) {
-            case 1: // Setting up
-                settings = setting_up();
-                server   = server_create(settings);
-                if (server == NULL) fprintf(stderr, "\n[-] Error while configuring the server. Try to use sudo.\n\n");
+            case 1: // Change settings
                 break;
             case 2: // Start sniffer
                 server_run(server);
+                add_to_strbuf(strbuf, "\n[+] Sniffer started!\n");
                 break;
             case 3: // Stop sniffer
                 server->is_online = 0;
+                add_to_strbuf(strbuf, "\n[+] Sniffer stopped!\n");
                 break;
             case 4: // Monitor
-                if (monitor(server) != 0) fprintf(stderr, "\n[-] Setting up sniffer first!\n");
+                if (monitor(server) != 0) add_to_strbuf(strbuf, "\n[-] Setting up sniffer first!\n");
                 break;
             case 5: // Exit
                 exit_flag = 1;
                 break;
             default:
-                print_invalid_option();
+                print_invalid_option(strbuf);
                 break;
         }
     }
-
-    exit_sniffing_mode(server, settings);
     return err_code;
 }

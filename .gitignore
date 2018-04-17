@@ -2,7 +2,7 @@
 .gdb_history
 peda*
 
-.vscode
+.vscode/
 
 # Prerequisites
 *.d

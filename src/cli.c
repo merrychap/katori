@@ -15,16 +15,20 @@ static void print_welcome_header() {
 
 
 static void print_main_menu() {
+    system("clear");
+
     fprintf(stdout, "\n=================================\n");
     fprintf(stdout, "    [1] Sniffing mode.\n");
     fprintf(stdout, "    [2] Spoofing mode (isn't implemented yet).\n");
     fprintf(stdout, "    [3] Exit.\n");
     fprintf(stdout, "=================================\n");
-    fprintf(stdout, "Choice: ");
 }
 
 
 int start_prompt() {
+    strbuf_t *strbuf = create_strbuf(STRBUFSIZE);
+    server_t *server = 0;
+
     int err_code   = 0;
     int choice     = 0;
     int exit_flag  = 0;
@@ -39,18 +43,21 @@ int start_prompt() {
 
         switch (choice) {
             case 1:
-                sniffing_mode();
+                sniffing_mode(&server, strbuf);
                 break;
             case 2:
-                spoofing_mode();
+                spoofing_mode(strbuf);
                 break;
             case 3:
                 exit_flag = 1;
                 break;
             default:
-                print_invalid_option();
+                print_invalid_option(strbuf);
                 break;
         }
     }
+    
+    destroy_strbuf(strbuf);
+    server_destroy(server);
     return err_code;
 }

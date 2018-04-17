@@ -46,6 +46,8 @@ int input_choice(void) {
     int choice;
     char buf[100];
 
+    fprintf(stdout, "\nChoice: ");
+
     input_string(buf, sizeof(buf));
     int sscanf_res = sscanf(buf, "%d", &choice);
 
@@ -56,6 +58,49 @@ int input_choice(void) {
 }
 
 
-void print_invalid_option(void) {
-    fprintf(stderr, COLOR_RED "[-]" COLOR_RESET " Invalid option.\n");
+void print_invalid_option(strbuf_t *strbuf) {
+    add_to_strbuf(strbuf, COLOR_RED "[-]" COLOR_RESET " Invalid option.\n");
+}
+
+
+void prompt_menu(int (*mode)(void), char **out_buffer) {
+
+}
+
+
+void print_strbuf(strbuf_t *strbuf) {
+    for (size_t i = 0; i < strbuf->size; i++) {
+        fprintf(stdout, strbuf->buf[i]);
+        strbuf->buf[i] = 0;
+    }
+}
+
+
+int add_to_strbuf(strbuf_t *strbuf, char *str) {
+    if (strbuf->count >= strbuf->size) return large_index_error;
+    strbuf->buf[strbuf->count++] = str;
+    return 0;
+}
+
+
+strbuf_t * create_strbuf(size_t size) {
+    strbuf_t *strbuf = (strbuf_t *) malloc(sizeof(strbuf_t));
+    char     **buf   = (char **) malloc(sizeof(char *) * size);
+
+    strbuf->buf   = buf;
+    strbuf->size  = size;
+    strbuf->count = 0;
+
+    return strbuf;
+}
+
+
+// buffer's strings have to be freed outside of this function
+int destroy_strbuf(strbuf_t *strbuf) {
+    if (strbuf == NULL) return null_strbuf_error;
+    
+    strbuf->size = 0;
+    free(strbuf->buf);
+    free(strbuf);
+    return 0;
 }
