@@ -63,8 +63,8 @@ void print_invalid_option(strbuf_t *strbuf) {
 }
 
 
-void prompt_menu(int (*mode)(void), char **out_buffer) {
-
+void clear_window(void) {
+    system("clear");
 }
 
 
@@ -103,4 +103,13 @@ int destroy_strbuf(strbuf_t *strbuf) {
     free(strbuf->buf);
     free(strbuf);
     return 0;
+}
+
+
+FILE * reset_file(char *filename) {
+    if (access(filename, F_OK) != -1)
+        if (remove(filename) != 0) return NULL;
+    FILE * fd = fopen(filename, "a+");
+    free(filename);
+    return fd;
 }

@@ -17,8 +17,11 @@ typedef struct strbuf_t strbuf_t;
 
 
 typedef enum {
-    large_index_error = -1,
-    null_strbuf_error = -2
+    large_index_error     = -1,
+    null_strbuf_error     = -2,
+    unable_to_remove_file = -3,
+    file_doesnt_exist     = -4,
+    unable_to_open_file   = -5
 } cli_utils_error_t;
 
 
@@ -38,9 +41,13 @@ int  input_choice(void);
 
 void print_invalid_option(strbuf_t *strbuf);
 
+void clear_window(void);
+
 void print_strbuf (strbuf_t *strbuf);
 int  add_to_strbuf(strbuf_t *strbuf, char *str);
 strbuf_t * create_strbuf(size_t size);
 int destroy_strbuf(strbuf_t *strbuf);
+
+FILE * reset_file(char *filename);
 
 #endif

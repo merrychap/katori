@@ -8,6 +8,8 @@
 
 
 static void print_welcome_header() {
+    clear_window();
+
     fprintf(stdout, COLOR_YELLOW "/////////////////////////\n" COLOR_RESET);
     fprintf(stdout, COLOR_BLUE "   katori " COLOR_RESET "greets you!\n");
     fprintf(stdout, COLOR_YELLOW "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n" COLOR_RESET);
@@ -15,8 +17,6 @@ static void print_welcome_header() {
 
 
 static void print_main_menu() {
-    system("clear");
-
     fprintf(stdout, "\n=================================\n");
     fprintf(stdout, "    [1] Sniffing mode.\n");
     fprintf(stdout, "    [2] Spoofing mode (isn't implemented yet).\n");
@@ -32,10 +32,15 @@ int start_prompt() {
     int err_code   = 0;
     int choice     = 0;
     int exit_flag  = 0;
+    int first_run  = 1;
 
     print_welcome_header();    
 
     while (!exit_flag) {
+        if (!first_run)
+            clear_window();
+        if (first_run) first_run = 0;
+        
         print_main_menu();
         
         choice = input_choice();

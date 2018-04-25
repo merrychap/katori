@@ -158,7 +158,6 @@ int server_run(server_t *server) {
     if (pthread_create(&(server->exec), NULL, __server_run, (void *)server) != 0) {
         return server_run_error;
     }
-
     return 0;
 }
 
@@ -166,13 +165,12 @@ int server_run(server_t *server) {
 int server_destroy(server_t *server) {
     int err_code = 0;
     
-    if (server == NULL) return -1;
-
+    if (server == NULL)       return server_null_error;
+    if (server->exec == NULL) return server_null_exec_error;
+    
     server->is_online = 0;
     
     if (pthread_join(server->exec, NULL) != 0) err_code = server_exec_join_error;
-
-    
     if (server->socket_fd >= 0) {
         // if (shutdown(server->socket_fd, SHUT_RDWR) < 0) perror("shutdown");
         if (close(server->socket_fd) < 0) perror("close");

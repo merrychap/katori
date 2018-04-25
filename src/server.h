@@ -22,7 +22,9 @@ typedef enum {
     sniffer_create_failure = -2,
     server_run_error       = -3,
     server_destroy_error   = -4,
-    server_exec_join_error = -5
+    server_null_exec_error = -5,
+    server_null_error      = -6,
+    server_exec_join_error = -7
 } server_error_t;
 
 
@@ -35,6 +37,7 @@ struct interface_t {
 struct user_settings_t {
     int mode;
     interface_t *interface;
+    FILE        *logfile;
 };
 
 

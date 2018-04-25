@@ -7,7 +7,8 @@
 #include "sniffing.h"
 
 
-#define SLEEP 5000
+#define SLEEP           5000
+#define MAX_LOGGILE_LEN 1000
 
 
 static void print_sniffing_header() {
@@ -16,7 +17,7 @@ static void print_sniffing_header() {
 
 
 static void print_sniffing_menu() {    
-    system("clear");
+    clear_window();
 
     fprintf(stdout, "\n=================================\n");
     fprintf(stdout, "   [1] Change settings.\n");
@@ -52,9 +53,21 @@ static interface_t * set_interface() {
 static int remove_settings(user_settings_t *settings) {
     if (settings) {
         remove_interface(settings->interface);
+        if (settings->logfile) {
+            fclose(settings->logfile);
+        }
         free(settings);
     }
     return 0;
+}
+
+
+static FILE * specify_logfile(void) {
+    char *logfile = (char *) malloc(MAX_LOGGILE_LEN);
+    fprintf(stdout, "[*] Specify log file: ");
+    input_string(logfile, MAX_LOGGILE_LEN);
+
+    return reset_file(logfile);
 }
 
 
@@ -65,6 +78,7 @@ static user_settings_t * setting_up() {
     if (settings == NULL || interface == NULL) return NULL;
 
     settings->interface = interface;
+    settings->logfile   = specify_logfile();
     return settings;
 }
 
@@ -73,17 +87,14 @@ static int monitor(server_t *server) {
     if (server == NULL) return null_server_error;
 
     char key = 0;
-    
     fprintf(stdout, "[*] Type <q> to back.\n");
     
     term_nonblocking();
-    
     do {
         printf("TCP : %lu   UDP : %lu   ICMP : %lu   Others : %lu\r", server->sniffer->tcp, server->sniffer->udp, server->sniffer->icmp, server->sniffer->others);
         usleep(SLEEP);
         key = getchar();
     } while (1 && key != 'q');
-    
     term_reset();
     
     return 0;
@@ -94,6 +105,7 @@ static int prerun(server_t **server, strbuf_t *strbuf) {
     if (*server != NULL) return server_already_created;
     if (strbuf == NULL) return null_strbuf_error;
 
+    clear_window();
     user_settings_t *settings = setting_up();
     *server = server_create(settings);
     if (*server == NULL) add_to_strbuf(strbuf, "\n[-] Error while configuring the server. Try to use sudo.\n\n");
