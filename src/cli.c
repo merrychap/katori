@@ -29,6 +29,8 @@ int start_prompt() {
     strbuf_t *strbuf = create_strbuf(STRBUFSIZE);
     server_t *server = 0;
 
+    if (strbuf == NULL) return strbuf_create_error;
+
     int err_code   = 0;
     int choice     = 0;
     int exit_flag  = 0;
@@ -42,6 +44,7 @@ int start_prompt() {
         if (first_run) first_run = 0;
         
         print_main_menu();
+        print_strbuf(strbuf);
         
         choice = input_choice();
         printf("\n");
@@ -57,10 +60,13 @@ int start_prompt() {
                 exit_flag = 1;
                 break;
             default:
-                print_invalid_option(strbuf);
+                bad(strbuf, "Invalid option.\n");
                 break;
         }
     }
+
+    info(strbuf, "Shutting down...\n");
+    print_strbuf(strbuf);
     
     destroy_strbuf(strbuf);
     server_destroy(server);

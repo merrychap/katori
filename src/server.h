@@ -52,6 +52,8 @@ struct server_t {
     
     thread_pool_t *tpool;
     sniffer_t     *sniffer;
+
+    FILE * logfile;
 };
 
 

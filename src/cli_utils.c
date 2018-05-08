@@ -58,34 +58,66 @@ int input_choice(void) {
 }
 
 
-void print_invalid_option(strbuf_t *strbuf) {
-    add_to_strbuf(strbuf, COLOR_RED "[-]" COLOR_RESET " Invalid option.\n");
-}
-
-
 void clear_window(void) {
     system("clear");
 }
 
 
-void print_strbuf(strbuf_t *strbuf) {
-    for (size_t i = 0; i < strbuf->size; i++) {
-        fprintf(stdout, strbuf->buf[i]);
-        strbuf->buf[i] = 0;
-    }
+/////////////// STRING BUFFER FUNCTIONS ///////////////
+
+static int remove_strbuf_entity(strbuf_entity_t entity) {
+    if (entity.dynalloc)
+        if (entity.entry) free(entity.entry);
+    return 0;
 }
 
 
-int add_to_strbuf(strbuf_t *strbuf, char *str) {
+void print_strbuf(strbuf_t *strbuf) {
+    for (size_t i = 0; i < strbuf->count; i++) {
+        fprintf(stdout, strbuf->buf[i].entry);
+        remove_strbuf_entity(strbuf->buf[i]);
+        
+        strbuf->buf[i].dynalloc = 0;
+        strbuf->buf[i].entry    = 0;
+    }
+    strbuf->count = 0;
+}
+
+
+int add_to_strbuf_str(strbuf_t *strbuf, char const * const str) {
     if (strbuf->count >= strbuf->size) return large_index_error;
-    strbuf->buf[strbuf->count++] = str;
+    
+    strbuf->buf[strbuf->count].entry    = str;
+    strbuf->buf[strbuf->count].dynalloc = 0;
+    strbuf->count++;
+    
+    return 0;
+}
+
+
+int add_to_strbuf_dystr(strbuf_t *strbuf, char const * const str) {
+    if (strbuf->count >= strbuf->size) return large_index_error;
+    
+    strbuf->buf[strbuf->count].entry    = str;
+    strbuf->buf[strbuf->count].dynalloc = 1;
+    strbuf->count++;
+    
+    return 0;
+}
+
+
+int add_to_strbuf_entity(strbuf_t *strbuf, strbuf_entity_t entity) {
+    if (strbuf->count >= strbuf->size) return large_index_error;
+    strbuf->buf[strbuf->count++] = entity;
     return 0;
 }
 
 
 strbuf_t * create_strbuf(size_t size) {
-    strbuf_t *strbuf = (strbuf_t *) malloc(sizeof(strbuf_t));
-    char     **buf   = (char **) malloc(sizeof(char *) * size);
+    strbuf_t        *strbuf = (strbuf_t *)        malloc(sizeof(strbuf_t));
+    strbuf_entity_t *buf    = (strbuf_entity_t *) malloc(sizeof(strbuf_entity_t) * size);
+
+    if (strbuf == NULL || buf == NULL) return NULL;
 
     strbuf->buf   = buf;
     strbuf->size  = size;
@@ -94,16 +126,20 @@ strbuf_t * create_strbuf(size_t size) {
     return strbuf;
 }
 
-
-// buffer's strings have to be freed outside of this function
 int destroy_strbuf(strbuf_t *strbuf) {
-    if (strbuf == NULL) return null_strbuf_error;
-    
+    if (strbuf == NULL || strbuf->buf == NULL) return null_strbuf_error;
+
+    for (size_t i = 0; i < strbuf->size; i++)
+        remove_strbuf_entity(strbuf->buf[i]);
+
     strbuf->size = 0;
     free(strbuf->buf);
     free(strbuf);
+    
     return 0;
 }
+
+///////////////////////////////////////////////////////
 
 
 FILE * reset_file(char *filename) {
@@ -113,3 +149,61 @@ FILE * reset_file(char *filename) {
     free(filename);
     return fd;
 }
+
+
+/////////////// COLORED STRING PROCESSING ///////////////
+
+// BAD IMPLEMENTATION??
+
+// USING DYNAMIC ALLOCATION EVERYWHERE IS A BAD PRACTISE
+// CONSIDER SOME COMMON BUFFER FOR ALL (MAYBE USING STRBUF HERE)???
+// ALSO MAYBE PRINT FUNCTION SHOULD BE ADDED INSTEAD OF ADD TO STRINGBUF???
+
+static char * set_str(char * str, char *append, char *reset) {
+    size_t size = strlen(str) + STRING_APPEND_SIZE;
+    char * pstr = (char *) malloc(size);
+    memset(pstr, 0, size);
+
+    strcpy(pstr, append);
+    strcat(pstr, str);
+    strcat(pstr, reset);
+
+    return pstr;
+}
+
+char * red    (char *str) { return set_str(str, COLOR_RED,     COLOR_RESET); }
+char * green  (char *str) { return set_str(str, COLOR_GREEN,   COLOR_RESET); }
+char * yellow (char *str) { return set_str(str, COLOR_YELLOW,  COLOR_RESET); }
+char * blue   (char *str) { return set_str(str, COLOR_BLUE,    COLOR_RESET); }
+char * magenta(char *str) { return set_str(str, COLOR_MAGENTA, COLOR_RESET); }
+char * cyan   (char *str) { return set_str(str, COLOR_CYAN,    COLOR_RESET); }
+
+char * bold     (char *str) { return set_str(str, STYLE_BOLD,      STYLE_NO_BOLD); }
+char * underline(char *str) { return set_str(str, STYLE_UNDERLINE, STYLE_NO_UNDERLINE); }
+
+void bad(strbuf_t *strbuf, char *str) {
+    add_to_strbuf_dystr(strbuf, red("[-] "));
+    add_to_strbuf_str  (strbuf, str);
+}
+
+void good(strbuf_t *strbuf, char *str) {
+    add_to_strbuf_dystr(strbuf, green("[+] "));
+    add_to_strbuf_str  (strbuf, str);
+}
+
+void info(strbuf_t *strbuf, char *str) {
+    add_to_strbuf_dystr(strbuf, yellow("[!] "));
+    add_to_strbuf_str  (strbuf, str);
+}
+
+void run(strbuf_t *strbuf, char *str) {
+    add_to_strbuf_dystr(strbuf, bold("[~] "));
+    add_to_strbuf_str  (strbuf, str);
+}
+
+void que(strbuf_t *strbuf, char *str) {
+    add_to_strbuf_dystr(strbuf, blue("[?] "));
+    add_to_strbuf_str  (strbuf, str);
+}
+
+/////////////////////////////////////////////////////////

@@ -9,7 +9,8 @@
 typedef enum {
     sniffer_start_error = -1,
     setup_error         = -2,
-    interface_set_error = -3
+    interface_set_error = -3,
+    strbuf_create_error = -4
 } prompt_error_t;
 
 

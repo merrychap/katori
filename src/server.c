@@ -138,6 +138,7 @@ server_t * server_create(user_settings_t *settings) {
     if (server == NULL) return NULL;
 
     server->socket_fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+    setsockopt(server->socket_fd , SOL_SOCKET , SO_BINDTODEVICE , settings->interface , strlen(settings->interface->name)+1);
     
     if (server->socket_fd < 0) { server_destroy(server); return NULL; }
 
@@ -145,10 +146,13 @@ server_t * server_create(user_settings_t *settings) {
     server->tpool   = thread_pool_init(MAX_THREADS, QUEUE_SIZE);
     server->sniffer = sniffer_create();
 
-    if (server->sniffer == NULL ||
-        server->tpool   == NULL ||
-        server->buffer  == NULL) return NULL;
+    if (server->sniffer   == NULL ||
+        server->tpool     == NULL ||
+        server->buffer    == NULL ||
+        settings->logfile == NULL) return NULL;
+    
     server->is_online = 0;
+    server->logfile   = settings->logfile;
 
     return server;
 }
@@ -165,8 +169,7 @@ int server_run(server_t *server) {
 int server_destroy(server_t *server) {
     int err_code = 0;
     
-    if (server == NULL)       return server_null_error;
-    if (server->exec == NULL) return server_null_exec_error;
+    if (server == NULL) return server_null_error;
     
     server->is_online = 0;
     

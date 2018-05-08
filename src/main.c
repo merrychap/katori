@@ -14,6 +14,9 @@ int main(int argc, char **argv) {
     
     if (err_code == sniffer_start_error)
         fprintf(stderr, "[-] Error while starting a sniffer.\n");
+
+    if (err_code == strbuf_create_error)
+        fprintf(stderr, "[-] Error while creating a string buffer.\n");
     
     return 0;
 }

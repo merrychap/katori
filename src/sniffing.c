@@ -41,9 +41,15 @@ static interface_t * set_interface() {
         printf("    %d. %s\n", i, interfaces[i].name);
     }
 
-    fprintf(stdout, "[*] Enter interface index: ");
-    index = input_choice();
-    interface->name = interfaces[index].name;
+    while (1) {
+        fprintf(stdout, "[*] Enter interface index: ");
+        index = input_choice();
+        if (index < size) {
+            interface->name = interfaces[index].name;
+            break;
+        }
+        fprintf(stderr, "[-] Incorrect choice.\n");
+    }
 
     remove_interfaces(interfaces, size);
     return interface;
@@ -64,7 +70,7 @@ static int remove_settings(user_settings_t *settings) {
 
 static FILE * specify_logfile(void) {
     char *logfile = (char *) malloc(MAX_LOGGILE_LEN);
-    fprintf(stdout, "[*] Specify log file: ");
+    fprintf(stdout, "[*] Log file path: ");
     input_string(logfile, MAX_LOGGILE_LEN);
 
     return reset_file(logfile);
@@ -86,12 +92,17 @@ static user_settings_t * setting_up() {
 static int monitor(server_t *server) {
     if (server == NULL) return null_server_error;
 
-    char key = 0;
+    char key       = 0;
+    FILE * logfile = server->logfile;
+
     fprintf(stdout, "[*] Type <q> to back.\n");
     
     term_nonblocking();
     do {
         printf("TCP : %lu   UDP : %lu   ICMP : %lu   Others : %lu\r", server->sniffer->tcp, server->sniffer->udp, server->sniffer->icmp, server->sniffer->others);
+        
+        // TODO ADD PACKET PARSING AND LOGGING
+        
         usleep(SLEEP);
         key = getchar();
     } while (1 && key != 'q');
@@ -108,7 +119,7 @@ static int prerun(server_t **server, strbuf_t *strbuf) {
     clear_window();
     user_settings_t *settings = setting_up();
     *server = server_create(settings);
-    if (*server == NULL) add_to_strbuf(strbuf, "\n[-] Error while configuring the server. Try to use sudo.\n\n");
+    if (*server == NULL) bad(strbuf, "Error while configuring the server. Try to use sudo.\n\n");
 
     remove_settings(settings);
     return 0;
@@ -139,20 +150,20 @@ int sniffing_mode(server_t **_server, strbuf_t *strbuf) {
                 break;
             case 2: // Start sniffer
                 server_run(server);
-                add_to_strbuf(strbuf, "\n[+] Sniffer started!\n");
+                run(strbuf, "Sniffer started!\n");
                 break;
             case 3: // Stop sniffer
                 server->is_online = 0;
-                add_to_strbuf(strbuf, "\n[+] Sniffer stopped!\n");
+                good(strbuf, "Sniffer stopped!\n");
                 break;
             case 4: // Monitor
-                if (monitor(server) != 0) add_to_strbuf(strbuf, "\n[-] Setting up sniffer first!\n");
+                if (monitor(server) != 0) bad(strbuf, "Setting up sniffer first!\n");
                 break;
             case 5: // Exit
                 exit_flag = 1;
                 break;
             default:
-                print_invalid_option(strbuf);
+                bad(strbuf, "Invalid option.\n");
                 break;
         }
     }
