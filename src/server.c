@@ -16,17 +16,11 @@
 
 #include "server.h"
 #include "thread_pool.h"
+#include "sniffing_utils.h"
 
 
 #define BUF_SIZE         65536
 #define INTERFACES_COUNT 100
-
-
-typedef struct {
-    sniffer_t *sniffer;
-    unsigned char *buffer;
-    size_t size;
-} packet_arg_t;
 
 
 static sniffer_t * sniffer_create();
@@ -73,28 +67,12 @@ int remove_interfaces(interface_t *interfaces, const size_t size) {
 }
 
 
-static void process_packet(void *packet_struct) {
+static void __process_packet(void *packet_struct) {
     packet_arg_t *packet = (packet_arg_t *) packet_struct;
     sniffer_t *sniffer   = packet->sniffer;
 
     pthread_mutex_lock(&(sniffer->lock));
-
-    struct iphdr *ip_header = (struct iphdr *) (packet->buffer + sizeof(struct ethhdr));
-    
-    switch (ip_header->protocol) {
-        case 1:
-            sniffer->icmp++;
-            break;
-        case 6:
-            sniffer->tcp++;
-            break;
-        case 17:
-            sniffer->udp++;
-            break;
-        default:
-            sniffer->others++;
-            break;
-    }
+    process_packet(sniffer, packet);
     pthread_mutex_unlock(&(sniffer->lock));
 }
 
@@ -124,7 +102,7 @@ static void * __server_run(void * params) {
         packet.size    = data_size;
         packet.sniffer = server->sniffer;
         
-        thread_pool_add(server->tpool, &process_packet, &packet);
+        thread_pool_add(server->tpool, &__process_packet, &packet);
     }
     
     pthread_exit(NULL);
@@ -133,8 +111,11 @@ static void * __server_run(void * params) {
 
 
 server_t * server_create(user_settings_t *settings) {
+    if (settings == NULL ||
+        settings->interface == NULL ||
+        settings->logfile == NULL) return NULL;
+
     server_t  *server  = (server_t *)  malloc(sizeof(server_t));
-    
     if (server == NULL) return NULL;
 
     server->socket_fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
@@ -144,7 +125,7 @@ server_t * server_create(user_settings_t *settings) {
 
     server->buffer  = (unsigned char *) malloc(BUF_SIZE);
     server->tpool   = thread_pool_init(MAX_THREADS, QUEUE_SIZE);
-    server->sniffer = sniffer_create();
+    server->sniffer = sniffer_create(settings->logfile);
 
     if (server->sniffer   == NULL ||
         server->tpool     == NULL ||
@@ -152,7 +133,6 @@ server_t * server_create(user_settings_t *settings) {
         settings->logfile == NULL) return NULL;
     
     server->is_online = 0;
-    server->logfile   = settings->logfile;
 
     return server;
 }
@@ -186,19 +166,20 @@ int server_destroy(server_t *server) {
 
     free(server);
     
-    return 0;
+    return err_code;
 }
 
 
-static sniffer_t * sniffer_create() {
+static sniffer_t * sniffer_create(FILE *logfile) {
     sniffer_t *sniffer = (sniffer_t *) malloc(sizeof(sniffer_t));
     
     if (pthread_mutex_init(&(sniffer->lock), NULL) != 0) return NULL;
 
-    sniffer->icmp   = 0;
-    sniffer->tcp    = 0;
-    sniffer->udp    = 0;
-    sniffer->others = 0;
+    sniffer->logfile = logfile;
+    sniffer->icmp    = 0;
+    sniffer->tcp     = 0;
+    sniffer->udp     = 0;
+    sniffer->others  = 0;
     
     return sniffer;
 }

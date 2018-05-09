@@ -12,6 +12,7 @@
 
 typedef struct server_t        server_t;
 typedef struct sniffer_t       sniffer_t;
+typedef struct packet_arg_t    packet_arg_t;
 typedef struct interface_t     interface_t;
 typedef struct user_settings_t user_settings_t;
 typedef struct ifaddrs         ifaddrs_t;
@@ -60,10 +61,19 @@ struct server_t {
 struct sniffer_t {
     pthread_mutex_t lock;
     
+    FILE * logfile;
+
     size_t icmp;
     size_t tcp;
     size_t udp;
     size_t others;
+};
+
+
+struct packet_arg_t {
+    sniffer_t *sniffer;
+    unsigned char *buffer;
+    size_t size;
 };
 
 
