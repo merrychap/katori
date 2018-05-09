@@ -74,8 +74,8 @@ void clear_window(void);
 
 /////////////// STRING BUFFER FUNCTIONS ///////////////
 void       print_strbuf        (strbuf_t *strbuf);
-int        add_to_strbuf_str   (strbuf_t *strbuf, char const * const str);
-int        add_to_strbuf_dystr (strbuf_t *strbuf, char const * const str);
+int        add_to_strbuf_str   (strbuf_t *strbuf, char * const str);
+int        add_to_strbuf_dystr (strbuf_t *strbuf, char * const str);
 int        add_to_strbuf_entity(strbuf_t *strbuf, strbuf_entity_t entity);
 strbuf_t * create_strbuf       (size_t size);
 int        destroy_strbuf      (strbuf_t *strbuf);

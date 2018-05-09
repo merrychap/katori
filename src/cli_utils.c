@@ -84,7 +84,7 @@ void print_strbuf(strbuf_t *strbuf) {
 }
 
 
-int add_to_strbuf_str(strbuf_t *strbuf, char const * const str) {
+int add_to_strbuf_str(strbuf_t *strbuf, char * const str) {
     if (strbuf->count >= strbuf->size) return large_index_error;
     
     strbuf->buf[strbuf->count].entry    = str;
@@ -95,7 +95,7 @@ int add_to_strbuf_str(strbuf_t *strbuf, char const * const str) {
 }
 
 
-int add_to_strbuf_dystr(strbuf_t *strbuf, char const * const str) {
+int add_to_strbuf_dystr(strbuf_t *strbuf, char * const str) {
     if (strbuf->count >= strbuf->size) return large_index_error;
     
     strbuf->buf[strbuf->count].entry    = str;
