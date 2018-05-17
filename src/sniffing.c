@@ -119,7 +119,12 @@ static int prerun(server_t **server, strbuf_t *strbuf) {
     clear_window();
     user_settings_t *settings = setting_up();
     *server = server_create(settings);
-    if (*server == NULL) bad(strbuf, "Error while configuring the server. Try to use sudo.\n\n");
+    if (*server == NULL) {
+        bad(strbuf, "Error while configuring the server!\n");
+        add_to_strbuf_str(strbuf, "    It can be caused because of several things:\n");
+        add_to_strbuf_str(strbuf, "      \033[1m[1]\033[22m Bad path of logfile.\n");
+        add_to_strbuf_str(strbuf, "      \033[1m[2]\033[22m Low priviledges. Try to use \033[1msudo\033[22m in this case.\n\n");
+    }
 
     remove_settings(settings);
     return 0;

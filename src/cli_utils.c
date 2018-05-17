@@ -145,9 +145,9 @@ int destroy_strbuf(strbuf_t *strbuf) {
 FILE * reset_file(char *filename) {
     if (access(filename, F_OK) != -1)
         if (remove(filename) != 0) return NULL;
-    FILE * fd = fopen(filename, "a+");
+    FILE * fp = fopen(filename, "a+");
     free(filename);
-    return fd;
+    return fp;
 }
 
 
@@ -182,17 +182,17 @@ char * bold     (char *str) { return set_str(str, STYLE_BOLD,      STYLE_NO_BOLD
 char * underline(char *str) { return set_str(str, STYLE_UNDERLINE, STYLE_NO_UNDERLINE); }
 
 void bad(strbuf_t *strbuf, char *str) {
-    add_to_strbuf_dystr(strbuf, red("[-] "));
+    add_to_strbuf_dystr(strbuf, bold(red("[-] ")));
     add_to_strbuf_str  (strbuf, str);
 }
 
 void good(strbuf_t *strbuf, char *str) {
-    add_to_strbuf_dystr(strbuf, green("[+] "));
+    add_to_strbuf_dystr(strbuf, bold(green("[+] ")));
     add_to_strbuf_str  (strbuf, str);
 }
 
 void info(strbuf_t *strbuf, char *str) {
-    add_to_strbuf_dystr(strbuf, yellow("[!] "));
+    add_to_strbuf_dystr(strbuf, bold(yellow("[!] ")));
     add_to_strbuf_str  (strbuf, str);
 }
 
@@ -202,7 +202,7 @@ void run(strbuf_t *strbuf, char *str) {
 }
 
 void que(strbuf_t *strbuf, char *str) {
-    add_to_strbuf_dystr(strbuf, blue("[?] "));
+    add_to_strbuf_dystr(strbuf, bold(blue("[?] ")));
     add_to_strbuf_str  (strbuf, str);
 }
 

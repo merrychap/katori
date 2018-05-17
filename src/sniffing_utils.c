@@ -13,10 +13,18 @@
 #include "sniffing_utils.h"
 
 
-static void parse_tcp_packet () {  }
-static void parse_udp_packet () {  }
-static void parse_arp_packet () {  }
-static void parse_icmp_packet() {  }
+static void parse_tcp_packet (packet_arg_t *packet) {
+    
+}
+
+
+static void parse_udp_packet (packet_arg_t *packet) {  }
+
+
+static void parse_arp_packet (packet_arg_t *packet) {  }
+
+
+static void parse_icmp_packet(packet_arg_t *packet) {  }
 
 
 void process_packet(sniffer_t *sniffer, packet_arg_t *packet) {
@@ -25,6 +33,7 @@ void process_packet(sniffer_t *sniffer, packet_arg_t *packet) {
     switch (ip_header->protocol) {
         case 1:
             sniffer->icmp++;
+            parse_icmp_packet(packet);
             break;
         case 6:
             sniffer->tcp++;
