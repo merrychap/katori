@@ -141,7 +141,7 @@ int destroy_strbuf(strbuf_t *strbuf) {
 
 ///////////////////////////////////////////////////////
 
-
+// TODO FIX PROBLEMS WITH INCORRECT PATH OR ANYTHING LIKE THAT
 FILE * reset_file(char *filename) {
     if (access(filename, F_OK) != -1)
         if (remove(filename) != 0) return NULL;
