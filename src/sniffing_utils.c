@@ -12,35 +12,28 @@
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
 #include <sys/uio.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
+#include <netdb.h>
 
 #include "sniffing_utils.h"
 
 
 void print_raw_data(FILE *logfile, unsigned char* data, size_t size) {
-    int i = 0;
-    int j = 0;
-
-    for (i = 0 ; i < size; i++) {
-        if (i != 0 && i % 16 == 0) {
-            fprintf(logfile , "         ");
-            for (j = i - 16; j < i; j++)
-                if (data[j] >= 32 && data[j] <= 128) fprintf(logfile, "%c", (unsigned char) data[j]);
-                else fprintf(logfile, ".");
-            fprintf(logfile , "\n");
-        } 
-         
-        if (i % 16 == 0) fprintf(logfile, "   ");
-            fprintf(logfile, " %02X", (unsigned int) data[i]);
-                 
-        if (i == size-1) {
-            for (j = 0; j < 15 - i % 16; j++)
-              fprintf(logfile, "   ");
-            fprintf(logfile, "         ");
-            for (j = i - i % 16; j <= i; j++)
-                if (data[j] >= 32 && data[j] <= 128) fprintf(logfile, "%c", (unsigned char) data[j]);
-                else fprintf(logfile, ".");
-            fprintf(logfile,  "\n" );
+    size_t chunk_size = 16;
+    for (size_t chunk_id = 0; chunk_id + chunk_size < size; chunk_id += chunk_size) {
+        fprintf(logfile, "    ");
+        for (size_t byte_id = chunk_id; byte_id < chunk_id + chunk_size; byte_id++) {
+            fprintf(logfile, " %02X", (unsigned int) data[byte_id]);
         }
+        fprintf(logfile, "         ");
+        for (size_t byte_id = chunk_id; byte_id < chunk_id + chunk_size; byte_id++) {
+            if (data[byte_id] >= 32 && data[byte_id] <= 128) fprintf(logfile, "%c", data[byte_id]);
+            else fprintf(logfile, ".");
+        }
+        fprintf(logfile, "\n");
     }
 }
 
@@ -88,7 +81,7 @@ void parse_ip_header(FILE * logfile, packet_arg_t *packet) {
 }
 
 
-static void parse_tcp_packet (FILE *logfile, packet_arg_t *packet) {
+static void parse_tcp_packet(FILE *logfile, packet_arg_t *packet) {
     unsigned short iphdrlen;
      
     struct iphdr *iph = (struct iphdr *)(packet->buffer + sizeof(struct ethhdr));
@@ -107,7 +100,7 @@ static void parse_tcp_packet (FILE *logfile, packet_arg_t *packet) {
     fprintf(logfile, "   |-Destination Port : %u\n",   ntohs(tcph->dest));
     fprintf(logfile, "   |-Sequence Number    : %u\n", ntohl(tcph->seq));
     fprintf(logfile, "   |-Acknowledge Number : %u\n", ntohl(tcph->ack_seq));
-    fprintf(logfile, "   |-Header Length      : %d DWORDS or %d BYTES\n", (unsigned int)tcph->doff, (unsigned int)tcph->doff*4);
+    fprintf(logfile, "   |-Header Length      : %d DWORDS or %d BYTES\n", (unsigned int) tcph->doff, (unsigned int) tcph->doff * 4);
     //fprintf(logfile , "   |-CWR Flag : %d\n",(unsigned int)tcph->cwr);
     //fprintf(logfile , "   |-ECN Flag : %d\n",(unsigned int)tcph->ece);
     fprintf(logfile, "   |-Urgent Flag          : %d\n", (unsigned int) tcph->urg);
@@ -130,7 +123,8 @@ static void parse_tcp_packet (FILE *logfile, packet_arg_t *packet) {
     print_raw_data(logfile, packet->buffer+iphdrlen, tcph->doff*4);
          
     fprintf(logfile , "Data Payload\n");
-    print_raw_data(logfile, packet->buffer + header_size, packet->size - header_size );
+    size_t data_size = (packet->size > header_size) ? packet->size - header_size : 0;
+    print_raw_data(logfile, packet->buffer + header_size, data_size);
                          
     fprintf(logfile , "\n###########################################################");
 }
@@ -155,9 +149,11 @@ void process_packet(sniffer_t *sniffer, packet_arg_t *packet) {
             parse_icmp_packet(logfile, packet);
             break;
         case 6:
+            parse_tcp_packet(logfile, packet);
             sniffer->tcp++;
             break;
         case 17:
+            parse_udp_packet(logfile, packet);
             sniffer->udp++;
             break;
         default:

@@ -90,12 +90,12 @@ thread_pool_t * thread_pool_init(size_t thread_count, size_t queue_size) {
     thread_pool_t *tpool = (thread_pool_t *) malloc(sizeof(thread_pool_t));
     if (tpool == NULL) return NULL;
 
-    tpool->workers    = (pthread_t *) malloc(sizeof(pthread_t) * thread_count);
-    tpool->work_queue = (thread_pool_queue_t *) malloc(sizeof(thread_pool_queue_t));
+    tpool->workers    = (pthread_t *)                 malloc(sizeof(pthread_t) * thread_count);
+    tpool->work_queue = (thread_pool_queue_t *)       malloc(sizeof(thread_pool_queue_t));
     tpool->work_queue->works = (thread_pool_work_t *) malloc(sizeof(thread_pool_work_t) * queue_size);
 
     if (pthread_mutex_init(&(tpool->lock), NULL) != 0 || 
-        pthread_cond_init(&(tpool->cond), NULL) != 0 ||
+        pthread_cond_init( &(tpool->cond), NULL) != 0 ||
         tpool->workers == NULL || tpool->work_queue == NULL || tpool->work_queue->works == NULL) {
         
         thread_pool_free(tpool);

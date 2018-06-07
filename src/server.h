@@ -48,13 +48,10 @@ struct server_t {
     unsigned char *buffer;
     
     pthread_t       exec;
-    pthread_mutex_t mutex;
     pthread_cond_t  cond;
     
     thread_pool_t *tpool;
     sniffer_t     *sniffer;
-
-    FILE * logfile;
 };
 
 

@@ -8,7 +8,7 @@
 
 
 #define SLEEP           5000
-#define MAX_LOGGILE_LEN 1000
+#define MAX_LOGFILE_LEN 1000
 
 
 static void print_sniffing_header() {
@@ -56,22 +56,10 @@ static interface_t * set_interface() {
 }
 
 
-static int remove_settings(user_settings_t *settings) {
-    if (settings) {
-        remove_interface(settings->interface);
-        if (settings->logfile) {
-            fclose(settings->logfile);
-        }
-        free(settings);
-    }
-    return 0;
-}
-
-
 static FILE * specify_logfile(void) {
-    char *logfile = (char *) malloc(MAX_LOGGILE_LEN);
+    char logfile[MAX_LOGFILE_LEN];
     fprintf(stdout, "[*] Log file path: ");
-    input_string(logfile, MAX_LOGGILE_LEN);
+    input_string(logfile, MAX_LOGFILE_LEN);
 
     return reset_file(logfile);
 }
@@ -85,6 +73,7 @@ static user_settings_t * setting_up() {
 
     settings->interface = interface;
     settings->logfile   = specify_logfile();
+
     return settings;
 }
 
@@ -93,7 +82,7 @@ static int monitor(server_t *server) {
     if (server == NULL) return null_server_error;
 
     char key       = 0;
-    FILE * logfile = server->logfile;
+    FILE * logfile = server->sniffer->logfile;
 
     fprintf(stdout, "[*] Type <q> to back.\n");
     
@@ -114,7 +103,7 @@ static int monitor(server_t *server) {
 
 static int prerun(server_t **server, strbuf_t *strbuf) {
     if (*server != NULL) return server_already_created;
-    if (strbuf == NULL) return null_strbuf_error;
+    if (strbuf == NULL)  return null_strbuf_error;
 
     clear_window();
     user_settings_t *settings = setting_up();
@@ -126,7 +115,6 @@ static int prerun(server_t **server, strbuf_t *strbuf) {
         add_to_strbuf_str(strbuf, "      \033[1m[2]\033[22m Low priviledges. Try to use \033[1msudo\033[22m in this case.\n\n");
     }
 
-    remove_settings(settings);
     return 0;
 }
 
@@ -139,6 +127,7 @@ int sniffing_mode(server_t **_server, strbuf_t *strbuf) {
     size_t buf_size = 0;
 
     prerun(_server, strbuf);
+
     server_t *server = *_server;
 
     print_sniffing_header();

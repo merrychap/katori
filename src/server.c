@@ -67,6 +67,15 @@ int remove_interfaces(interface_t *interfaces, const size_t size) {
 }
 
 
+static int remove_settings(user_settings_t *settings) {
+    if (settings) {
+        remove_interface(settings->interface);
+        free(settings);
+    }
+    return 0;
+}
+
+
 static void __process_packet(void *packet_struct) {
     packet_arg_t *packet = (packet_arg_t *) packet_struct;
     sniffer_t *sniffer   = packet->sniffer;
@@ -94,15 +103,16 @@ static void * __server_run(void * params) {
 
     while (server->is_online) {
         saddr_size = sizeof(saddr);
-        data_size = recvfrom(server->socket_fd, server->buffer, BUF_SIZE, 0, &saddr, (socklen_t*)&saddr_size);
+        data_size = recvfrom(server->socket_fd, server->buffer, BUF_SIZE, 0, &saddr, (socklen_t*) &saddr_size);
         
         if (data_size < 0) { err_code = server_recv_error; break; }
-        
+
         packet.buffer  = server->buffer;
-        packet.size    = data_size;
+        packet.size    = (size_t) data_size;
         packet.sniffer = server->sniffer;
         
         thread_pool_add(server->tpool, &__process_packet, &packet);
+        // __process_packet(&packet);
     }
     
     pthread_exit(NULL);
@@ -115,7 +125,7 @@ server_t * server_create(user_settings_t *settings) {
         settings->interface == NULL ||
         settings->logfile == NULL) return NULL;
 
-    server_t  *server  = (server_t *)  malloc(sizeof(server_t));
+    server_t  *server = (server_t *) malloc(sizeof(server_t));
     if (server == NULL) return NULL;
 
     server->socket_fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
@@ -129,8 +139,7 @@ server_t * server_create(user_settings_t *settings) {
 
     if (server->sniffer   == NULL ||
         server->tpool     == NULL ||
-        server->buffer    == NULL ||
-        settings->logfile == NULL) return NULL;
+        server->buffer    == NULL) return NULL;
     
     server->is_online = 0;
 
@@ -163,7 +172,7 @@ int server_destroy(server_t *server) {
     
     thread_pool_kill(server->tpool, complete_shutdown);
     sniffer_destroy(server->sniffer);
-
+    
     free(server);
     
     return err_code;
@@ -190,6 +199,8 @@ static int sniffer_destroy(sniffer_t *sniffer) {
 
     pthread_mutex_destroy(&(sniffer->lock));
     
+    fclose(sniffer->logfile);
     free(sniffer);
+    
     return 0;
 }

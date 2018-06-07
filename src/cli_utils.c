@@ -145,9 +145,8 @@ int destroy_strbuf(strbuf_t *strbuf) {
 FILE * reset_file(char *filename) {
     if (access(filename, F_OK) != -1)
         if (remove(filename) != 0) return NULL;
-    FILE * fp = fopen(filename, "a+");
-    free(filename);
-    return fp;
+    // FILE ** fp = (FILE *) malloc(sizeof(FILE *));
+    return fopen(filename, "a+");
 }
 
 
