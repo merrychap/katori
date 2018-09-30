@@ -7,7 +7,7 @@ The functions provided by `katori` is for **educational purposes only**. You are
 If you agree with the above statements, you may proceed to use this tool for anything legal.
 
 ## INFO
-This is **unbuild version** (I'm rewriting a log of things right now). Yeah, it's should be in another branch and I very sorry about it, but I'm too lazy to fix it right now. It will be fixed very very soon, I promise!
+This is **unbuild version** (I'm rewriting a lot of things right now). Yeah, it's should be in another branch and I very sorry about it, but I'm too lazy to fix it right now. It will be fixed very very soon, I promise!
 
 ## General info
 
