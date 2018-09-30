@@ -56,29 +56,19 @@ set_interface(void)
     return interface;
 }
 
-static FILE *
-specify_logfile(void)
-{
-    char logfile[MAX_LOGFILE_LEN];
-    fprintf(stdout, "[*] Log file path: ");
-    input_string(logfile, MAX_LOGFILE_LEN);
+// static user_settings_t *
+// setting_up(void)
+// {
+//     user_settings_t * settings = (user_settings_t *) malloc(sizeof(user_settings_t));
+//     interface_t     *interface = set_interface();
 
-    return reset_file(logfile);
-}
+//     if (settings == NULL || interface == NULL) return NULL;
 
-static user_settings_t *
-setting_up(void)
-{
-    user_settings_t * settings = (user_settings_t *) malloc(sizeof(user_settings_t));
-    interface_t     *interface = set_interface();
+//     settings->interface = interface;
+//     settings->logfile   = specify_logfile();
 
-    if (settings == NULL || interface == NULL) return NULL;
-
-    settings->interface = interface;
-    settings->logfile   = specify_logfile();
-
-    return settings;
-}
+//     return settings;
+// }
 
 static int
 monitor(server_t *server)
@@ -111,10 +101,11 @@ prerun(void)
     user_settings_t *settings = setting_up();
     *server = server_create(settings);
     if (*server == NULL) {
-        bad(strbuf, "Error while configuring the server!\n");
-        add_to_strbuf_str(strbuf, "    It can be caused because of several things:\n");
-        add_to_strbuf_str(strbuf, "      \033[1m[1]\033[22m Bad path of logfile.\n");
-        add_to_strbuf_str(strbuf, "      \033[1m[2]\033[22m Low priviledges. Try to use \033[1msudo\033[22m in this case.\n\n");
+        bad("Error while configuring the server!");
+        fprintf(stderr, "    It can be caused because of several things:\n");
+        fprintf(stderr, "      \033[1m[1]\033[22m Bad path of logfile.\n");
+        fprintf(stderr, "      \033[1m[2]\033[22m Low priviledges. Try to use \033[1msudo\033[22m in this case.\n\n");
+        
     }
 
     return 0;

@@ -4,8 +4,7 @@
 
 #include "cli.h"
 #include "spoofing.h"
-#include "sniffing.h"
-
+#include "sniffer.h"
 
 static void
 print_welcome_header(void)
@@ -30,7 +29,7 @@ print_main_menu(void)
 
 
 int
-start_prompt(void)
+start_prompt(struct katori_t *katori)
 {
     int choice     = 0;
     int exit_flag  = 0;

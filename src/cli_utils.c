@@ -84,7 +84,7 @@ reset_file(char *filename)
 /////////////// COLORED STRING PROCESSING ///////////////
 
 static int
-strsetopt(const char *dst, const char *src,
+strsetopt(char *dst, const char *src,
     const char *append, const char *reset)
 {
     if ((!dst) || (!src) || (!append) || (!reset))
@@ -98,12 +98,15 @@ strsetopt(const char *dst, const char *src,
 }
 
 static int
-print_ansi_str(const char *str, int option)
+print_ansi_str(const char *str, const char *option)
 {
     char buf[BUF_SIZE];
     memset(buf, 0, BUF_SIZE);
     strsetopt(buf, str, option, COLOR_RESET);
+    
     fprintf(stderr, "%s", buf);
+    
+    return 0;
 }
 
 void red    (const char *str) { print_ansi_str(str, COLOR_RED); }

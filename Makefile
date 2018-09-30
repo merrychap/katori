@@ -9,10 +9,11 @@ CFLAGS = -Wall -D_GNU_SOURCE `pkg-config --cflags ${LIBS}`
 LDFLAGS = -Wl,--as-needed `pkg-config --libs ${LIBS}`
 
 OBJ_KATORI = src/katori.o src/cli_utils.o src/cli.o \
-			 src/log.o src/netlistener.o src/sniffer.o
-			 src/sniffing_utils.o src/spoofing.o src/utils.o
+			 src/log.o src/netlistener.o src/sniffer.o \
+			 src/sniffing_utils.o src/spoofing.o src/utils.o \
+			 src/argparser.o
 
-TARGETS = tests/thread_pool_test src/main
+TARGETS = katori
 
 CPPFLAGS = -DDEBUG
 

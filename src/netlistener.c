@@ -14,9 +14,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "server.h"
+#include "netlistener.h"
 #include "log.h"
-#include "sniffing_utils.h"
 
 #define BUF_SIZE         65536
 #define INTERFACES_COUNT 100

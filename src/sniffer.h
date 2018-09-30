@@ -7,8 +7,7 @@
 #include "netlistener.h"
 
 typedef enum {
-    LOGFILE_NULL_PTR = -1,
-    SNIFFER_NULL_PTR = -2
+    SNIFFER_NULL_PTR = -1
 } sniffing_mode_error_t;
 
 struct sniffer_t {
