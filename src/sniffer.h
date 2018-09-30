@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 
+#include "katori.h"
 #include "cli_utils.h"
 #include "netlistener.h"
 
@@ -27,9 +28,9 @@ struct packet_arg_t {
     size_t size;
 };
 
-struct sniffer_t sniffer_new(FILE *logfile);
-int sniffer_del(struct sniffer_t *sniffer);
+struct sniffer_t * sniffer_new(FILE *logfile);
+int sniffer_free(struct sniffer_t *sniffer);
 
-int sniffing_mode(void);
+int sniffing_mode(const struct katori_t *katori);
 
 #endif

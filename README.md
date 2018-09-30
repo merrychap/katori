@@ -2,7 +2,7 @@
 
 ## DISCLAIMER
 
-The functions provided by `katori` is for **educational purposes only**. You are solely responsible for your actions. Creator of `katori`, in no way responsible for any of the actions performed by anyone.
+**The functions provided by `katori` is for EDUCATIONAL PURPOSES ONLY. You are solely responsible for your actions. Creator of `katori`, in no way responsible for any of the actions performed by anyone.**
 
 If you agree with the above statements, you may proceed to use this tool for anything legal.
 

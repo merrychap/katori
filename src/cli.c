@@ -29,7 +29,7 @@ print_main_menu(void)
 
 
 int
-start_prompt(struct katori_t *katori)
+start_prompt(const struct katori_t *katori)
 {
     int choice     = 0;
     int exit_flag  = 0;
@@ -49,7 +49,7 @@ start_prompt(struct katori_t *katori)
 
         switch (choice) {
             case 1:
-                sniffing_mode();
+                sniffing_mode(katori);
                 break;
             case 2:
                 spoofing_mode();

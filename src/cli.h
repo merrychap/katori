@@ -12,7 +12,7 @@ typedef enum {
     NOP = -1
 } prompt_error_t;
 
-int start_prompt(struct katori_t *katori);
+int start_prompt(const struct katori_t *katori);
 
 
 #endif

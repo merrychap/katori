@@ -39,7 +39,7 @@ print_raw_data(FILE *logfile, unsigned char* data, size_t size)
 }
 
 void
-parse_ethernet_header(FILE * logfile, packet_arg_t *packet)
+parse_ethernet_header(FILE * logfile, struct packet_arg_t *packet)
 {
     struct ethhdr *eth = (struct ethhdr *)packet->buffer;
      
@@ -51,7 +51,7 @@ parse_ethernet_header(FILE * logfile, packet_arg_t *packet)
 }
 
 void
-parse_ip_header(FILE * logfile, packet_arg_t *packet)
+parse_ip_header(FILE * logfile, struct packet_arg_t *packet)
 {
     parse_ethernet_header(logfile, packet);
    
@@ -85,7 +85,7 @@ parse_ip_header(FILE * logfile, packet_arg_t *packet)
 }
 
 static void
-parse_tcp_packet(FILE *logfile, packet_arg_t *packet)
+parse_tcp_packet(FILE *logfile, struct packet_arg_t *packet)
 {
     unsigned short iphdrlen;
      
@@ -135,25 +135,25 @@ parse_tcp_packet(FILE *logfile, packet_arg_t *packet)
 }
 
 static void
-parse_udp_packet (FILE *logfile, packet_arg_t *packet)
+parse_udp_packet (FILE *logfile, struct packet_arg_t *packet)
 {
 
 }
 
 static void
-parse_arp_packet (FILE *logfile, packet_arg_t *packet)
+parse_arp_packet (FILE *logfile, struct packet_arg_t *packet)
 {
 
 }
 
 static void
-parse_icmp_packet(FILE *logfile, packet_arg_t *packet)
+parse_icmp_packet(FILE *logfile, struct packet_arg_t *packet)
 {
 
 }
 
 void
-process_packet(sniffer_t *sniffer, packet_arg_t *packet)
+process_packet(struct sniffer_t *sniffer, struct packet_arg_t *packet)
 {
     FILE * logfile          = sniffer->logfile;
     struct iphdr *ip_header = (struct iphdr *) (packet->buffer + sizeof(struct ethhdr));

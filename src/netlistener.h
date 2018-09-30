@@ -9,15 +9,11 @@
 #include <event2/event.h>
 
 typedef enum {
-    SERVER_NULL_PTR    = -1,
-    SETTINGS_NULL_PTR  = -2,
-    INTERFACE_NULL_PTR = -3,
-    SERVER_RECV_ERROR  = -4
+    LISTENER_NULL_PTR    = -1,
+    SETTINGS_NULL_PTR    = -2,
+    INTERFACE_NULL_PTR   = -3,
+    LISTENER_RECV_ERROR  = -4
 } server_error_t;
-
-struct interface_t {
-    char *name;
-};
 
 struct netlistener_t {
     int fd;
@@ -26,7 +22,7 @@ struct netlistener_t {
 
     int mode;
     FILE *logfile;
-    struct interface_t *interface;
+    const char *interface;
     
     struct event_base *evb;
     struct event *ev_pipe;
@@ -35,10 +31,10 @@ struct netlistener_t {
     void (*handler)(void * arg);
 };
 
-struct netlistener_t * listener_new(const struct interface_t *interface);
+struct netlistener_t * listener_new(const char *interface);
 int listener_run(const struct netlistener_t *listener);
 int listener_stop(struct netlistener_t *listener);
 int listener_resume(struct netlistener_t *listener);
-int listener_del(struct netlistener_t *listener);
+int listener_free(struct netlistener_t *listener);
 
 #endif

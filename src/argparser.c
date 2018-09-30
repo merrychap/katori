@@ -12,11 +12,12 @@ const char *argp_program_version = "katori 1.0";
 struct arguments {
     int verbose;         /* The -v flag */
     char *logfile;       /* log file */
+    char *interface;
 };
 
 static struct argp_option options[] = {
     { "verbose",   'v', 0,            0, "produce verbose output" },
-    { "interface", 'i', "INTERFACE",  0, "interface for sniffer listening" },
+    { "interface", 'i', "INTERFACE",  0, "interface to be listened" },
     { "logfile",   'l', "LOGFILE",    0, "file for logging traffic packets" },
     { 0 }
 };
@@ -27,14 +28,15 @@ static char doc[] = "A program that provides tools to work with network.";
 
 static error_t
 parse_opt(int key, char *arg, struct argp_state *state)
-{
-    char *pEnd = NULL;
-    
+{    
     struct arguments *arguments = state->input;
 
     switch (key) {
         case 'v':
             arguments->verbose = 1;
+            break;
+        case 'i':
+            arguments->interface = arg;
             break;
         case 'l':
             arguments->logfile = arg;
@@ -69,16 +71,20 @@ parse_args(const int argc, char **argv,
 
     argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
+    if (!arguments.interface)
+        return INTERFACE_NULL_POINTER;
+
     if (!arguments.logfile)
         return LOGFILE_NULL_PTR;
-
+    
     outstream = fopen(arguments.logfile, "w");
 
     if (outstream == NULL)
         return LOGFILE_FOPEN_ERROR;
 
-    config->verbose = arguments.verbose;
-    config->logfile = outstream;
+    config->verbose   = arguments.verbose;
+    config->logfile   = outstream;
+    config->interface = arguments.interface;
 
     return 0;
 }
