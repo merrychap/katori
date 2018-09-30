@@ -7,7 +7,9 @@
 #include "sniffing.h"
 
 
-static void print_welcome_header() {
+static void
+print_welcome_header(void)
+{
     clear_window();
 
     fprintf(stdout, COLOR_YELLOW "/////////////////////////\n" COLOR_RESET);
@@ -16,7 +18,9 @@ static void print_welcome_header() {
 }
 
 
-static void print_main_menu() {
+static void
+print_main_menu(void)
+{
     fprintf(stdout, "\n=================================\n");
     fprintf(stdout, "    [1] Sniffing mode.\n");
     fprintf(stdout, "    [2] Spoofing mode (isn't implemented yet).\n");
@@ -25,13 +29,9 @@ static void print_main_menu() {
 }
 
 
-int start_prompt() {
-    strbuf_t *strbuf = create_strbuf(STRBUFSIZE);
-    server_t *server = 0;
-
-    if (strbuf == NULL) return strbuf_create_error;
-
-    int err_code   = 0;
+int
+start_prompt(void)
+{
     int choice     = 0;
     int exit_flag  = 0;
     int first_run  = 1;
@@ -44,31 +44,27 @@ int start_prompt() {
         if (first_run) first_run = 0;
         
         print_main_menu();
-        print_strbuf(strbuf);
         
         choice = input_choice();
-        printf("\n");
+        fprintf(stderr, "\n");
 
         switch (choice) {
             case 1:
-                sniffing_mode(&server, strbuf);
+                sniffing_mode();
                 break;
             case 2:
-                spoofing_mode(strbuf);
+                spoofing_mode();
                 break;
             case 3:
                 exit_flag = 1;
                 break;
             default:
-                bad(strbuf, "Invalid option.\n");
+                bad("Invalid option.");
                 break;
         }
     }
 
-    info(strbuf, "Shutting down...\n");
-    print_strbuf(strbuf);
-    
-    destroy_strbuf(strbuf);
-    server_destroy(server);
-    return err_code;
+    info("Shutting down...");
+
+    return 0;
 }

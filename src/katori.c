@@ -5,8 +5,9 @@
 #include "server.h"
 #include "cli.h"
 
-
-int main(int argc, char **argv) {
+int
+main(int argc, char **argv)
+{
     int err_code = start_prompt();
 
     if (err_code == setup_error)

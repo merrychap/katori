@@ -6,17 +6,17 @@
 
 #include "sniffing.h"
 
-
 #define SLEEP           5000
 #define MAX_LOGFILE_LEN 1000
 
-
-static void print_sniffing_header() {
+static void
+print_sniffing_header(void)
+{
     fprintf(stdout, COLOR_CYAN "-->" COLOR_RESET " Sniffing mode.\n");
 }
 
-
-static void print_sniffing_menu() {    
+static void
+print_sniffing_menu(void) {
     clear_window();
 
     fprintf(stdout, "\n=================================\n");
@@ -28,8 +28,9 @@ static void print_sniffing_menu() {
     fprintf(stdout, "\n=================================\n");
 }
 
-
-static interface_t * set_interface() {
+static interface_t *
+set_interface(void)
+{
     size_t size  = 0;
     size_t index = 0;
     interface_t *interface  = (interface_t *) malloc(sizeof(interface_t));
@@ -55,8 +56,9 @@ static interface_t * set_interface() {
     return interface;
 }
 
-
-static FILE * specify_logfile(void) {
+static FILE *
+specify_logfile(void)
+{
     char logfile[MAX_LOGFILE_LEN];
     fprintf(stdout, "[*] Log file path: ");
     input_string(logfile, MAX_LOGFILE_LEN);
@@ -64,8 +66,9 @@ static FILE * specify_logfile(void) {
     return reset_file(logfile);
 }
 
-
-static user_settings_t * setting_up() {
+static user_settings_t *
+setting_up(void)
+{
     user_settings_t * settings = (user_settings_t *) malloc(sizeof(user_settings_t));
     interface_t     *interface = set_interface();
 
@@ -77,8 +80,9 @@ static user_settings_t * setting_up() {
     return settings;
 }
 
-
-static int monitor(server_t *server) {
+static int
+monitor(server_t *server)
+{
     if (server == NULL) return null_server_error;
 
     char key       = 0;
@@ -100,11 +104,9 @@ static int monitor(server_t *server) {
     return 0;
 }
 
-
-static int prerun(server_t **server, strbuf_t *strbuf) {
-    if (*server != NULL) return server_already_created;
-    if (strbuf == NULL)  return null_strbuf_error;
-
+static int
+prerun(void)
+{
     clear_window();
     user_settings_t *settings = setting_up();
     *server = server_create(settings);
@@ -118,46 +120,76 @@ static int prerun(server_t **server, strbuf_t *strbuf) {
     return 0;
 }
 
+struct sniffer_t *
+sniffer_new(FILE *logfile)
+{
+    if (logfile == NULL)
+        return LOGFILE_NULL_PTR;
+    
+    struct sniffer_t *sniffer = xmalloc_0(sizeof(struct sniffer_t));
 
-int sniffing_mode(server_t **_server, strbuf_t *strbuf) {    
+    if (sniffer == NULL)
+        return NULL;
+
+    sniffer->logfile = logfile;
+    sniffer->icmp    = 0;
+    sniffer->tcp     = 0;
+    sniffer->udp     = 0;
+    sniffer->others  = 0;
+    
+    return sniffer;
+}
+
+int
+sniffer_del(struct sniffer_t *sniffer)
+{
+    if (sniffer == NULL)
+        return SNIFFER_NULL_PTR;
+    
+    free(sniffer);
+    
+    return 0;
+}
+
+int
+sniffing_mode(void)
+{
     int choice    = 0;
     int err_code  = 0;
     int exit_flag = 0;
 
     size_t buf_size = 0;
 
-    prerun(_server, strbuf);
-
-    server_t *server = *_server;
+    prerun();
 
     print_sniffing_header();
 
     while (!exit_flag) {
         print_sniffing_menu();
-        print_strbuf(strbuf);
 
         choice = input_choice();
-        printf("\n");
+        fprintf(stderr, "\n");
 
         switch (choice) {
             case 1: // Change settings
                 break;
             case 2: // Start sniffer
                 server_run(server);
-                run(strbuf, "Sniffer started!\n");
+                run("Sniffer started!");
                 break;
             case 3: // Stop sniffer
                 server->is_online = 0;
-                good(strbuf, "Sniffer stopped!\n");
+                good("Sniffer stopped!");
                 break;
             case 4: // Monitor
-                if (monitor(server) != 0) bad(strbuf, "Setting up sniffer first!\n");
+                if (monitor(server) != 0)
+                    bad("Setting up sniffer first!");
                 break;
             case 5: // Exit
                 exit_flag = 1;
                 break;
             default:
-                bad(strbuf, "Invalid option.\n");
+                bad("Invalid option.");
                 break;
         }
     }

@@ -8,18 +8,22 @@
 #include <fcntl.h>
 
 #include "cli_utils.h"
+#include "utils.h"
 
+#define BUF_SIZE 65536
 
 struct termios stdin_orig;
 
-
-void term_reset(void) {
+void
+term_reset(void)
+{
     tcsetattr(STDIN_FILENO, TCSANOW, &stdin_orig);
     tcsetattr(STDIN_FILENO, TCSAFLUSH, &stdin_orig);
 }
 
-
-void term_nonblocking(void) { 
+void
+term_nonblocking(void)
+{
     struct termios term;
     
     tcgetattr(STDIN_FILENO, &stdin_orig);
@@ -35,14 +39,16 @@ void term_nonblocking(void) {
     atexit(term_reset);
 }
 
-
-void input_string(char *str, int size) {
+void
+input_string(char *str, int size)
+{
     fgets(str, size, stdin);
     str[strlen(str) - 1] = 0;
 }
 
-
-int input_choice(void) {
+int
+input_choice(void)
+{
     int choice;
     char buf[100];
 
@@ -57,152 +63,93 @@ int input_choice(void) {
     return choice;
 }
 
-
-void clear_window(void) {
+void
+clear_window(void)
+{
     system("clear");
-}
-
-
-/////////////// STRING BUFFER FUNCTIONS ///////////////
-
-static int remove_strbuf_entity(strbuf_entity_t entity) {
-    if (entity.dynalloc)
-        if (entity.entry) free(entity.entry);
-    return 0;
-}
-
-
-void print_strbuf(strbuf_t *strbuf) {
-    for (size_t i = 0; i < strbuf->count; i++) {
-        fprintf(stdout, strbuf->buf[i].entry);
-        remove_strbuf_entity(strbuf->buf[i]);
-        
-        strbuf->buf[i].dynalloc = 0;
-        strbuf->buf[i].entry    = 0;
-    }
-    strbuf->count = 0;
-}
-
-
-int add_to_strbuf_str(strbuf_t *strbuf, char * const str) {
-    if (strbuf->count >= strbuf->size) return large_index_error;
-    
-    strbuf->buf[strbuf->count].entry    = str;
-    strbuf->buf[strbuf->count].dynalloc = 0;
-    strbuf->count++;
-    
-    return 0;
-}
-
-
-int add_to_strbuf_dystr(strbuf_t *strbuf, char * const str) {
-    if (strbuf->count >= strbuf->size) return large_index_error;
-    
-    strbuf->buf[strbuf->count].entry    = str;
-    strbuf->buf[strbuf->count].dynalloc = 1;
-    strbuf->count++;
-    
-    return 0;
-}
-
-
-int add_to_strbuf_entity(strbuf_t *strbuf, strbuf_entity_t entity) {
-    if (strbuf->count >= strbuf->size) return large_index_error;
-    strbuf->buf[strbuf->count++] = entity;
-    return 0;
-}
-
-
-strbuf_t * create_strbuf(size_t size) {
-    strbuf_t        *strbuf = (strbuf_t *)        malloc(sizeof(strbuf_t));
-    strbuf_entity_t *buf    = (strbuf_entity_t *) malloc(sizeof(strbuf_entity_t) * size);
-
-    if (strbuf == NULL || buf == NULL) return NULL;
-
-    strbuf->buf   = buf;
-    strbuf->size  = size;
-    strbuf->count = 0;
-
-    return strbuf;
-}
-
-int destroy_strbuf(strbuf_t *strbuf) {
-    if (strbuf == NULL || strbuf->buf == NULL) return null_strbuf_error;
-
-    for (size_t i = 0; i < strbuf->size; i++)
-        remove_strbuf_entity(strbuf->buf[i]);
-
-    strbuf->size = 0;
-    free(strbuf->buf);
-    free(strbuf);
-    
-    return 0;
 }
 
 ///////////////////////////////////////////////////////
 
 // TODO FIX PROBLEMS WITH INCORRECT PATH OR ANYTHING LIKE THAT
-FILE * reset_file(char *filename) {
+FILE *
+reset_file(char *filename)
+{
     if (access(filename, F_OK) != -1)
         if (remove(filename) != 0) return NULL;
     // FILE ** fp = (FILE *) malloc(sizeof(FILE *));
     return fopen(filename, "a+");
 }
 
-
 /////////////// COLORED STRING PROCESSING ///////////////
 
-// BAD IMPLEMENTATION??
+static int
+strsetopt(const char *dst, const char *src,
+    const char *append, const char *reset)
+{
+    if ((!dst) || (!src) || (!append) || (!reset))
+        return SET_STR_ERROR;
 
-// USING DYNAMIC ALLOCATION EVERYWHERE IS A BAD PRACTISE
-// CONSIDER SOME COMMON BUFFER FOR ALL (MAYBE USING STRBUF HERE)???
-// ALSO MAYBE PRINT FUNCTION SHOULD BE ADDED INSTEAD OF ADD TO STRINGBUF???
+    strcpy(dst, append);
+    strcat(dst, src);
+    strcat(dst, reset);
 
-static char * set_str(char * str, char *append, char *reset) {
-    size_t size = strlen(str) + STRING_APPEND_SIZE;
-    char * pstr = (char *) malloc(size);
-    memset(pstr, 0, size);
-
-    strcpy(pstr, append);
-    strcat(pstr, str);
-    strcat(pstr, reset);
-
-    return pstr;
+    return 0;
 }
 
-char * red    (char *str) { return set_str(str, COLOR_RED,     COLOR_RESET); }
-char * green  (char *str) { return set_str(str, COLOR_GREEN,   COLOR_RESET); }
-char * yellow (char *str) { return set_str(str, COLOR_YELLOW,  COLOR_RESET); }
-char * blue   (char *str) { return set_str(str, COLOR_BLUE,    COLOR_RESET); }
-char * magenta(char *str) { return set_str(str, COLOR_MAGENTA, COLOR_RESET); }
-char * cyan   (char *str) { return set_str(str, COLOR_CYAN,    COLOR_RESET); }
-
-char * bold     (char *str) { return set_str(str, STYLE_BOLD,      STYLE_NO_BOLD); }
-char * underline(char *str) { return set_str(str, STYLE_UNDERLINE, STYLE_NO_UNDERLINE); }
-
-void bad(strbuf_t *strbuf, char *str) {
-    add_to_strbuf_dystr(strbuf, bold(red("[-] ")));
-    add_to_strbuf_str  (strbuf, str);
+static int
+print_ansi_str(const char *str, int option)
+{
+    char buf[BUF_SIZE];
+    memset(buf, 0, BUF_SIZE);
+    strsetopt(buf, str, option, COLOR_RESET);
+    fprintf(stderr, "%s", buf);
 }
 
-void good(strbuf_t *strbuf, char *str) {
-    add_to_strbuf_dystr(strbuf, bold(green("[+] ")));
-    add_to_strbuf_str  (strbuf, str);
+void red    (const char *str) { print_ansi_str(str, COLOR_RED); }
+void green  (const char *str) { print_ansi_str(str, COLOR_GREEN); }
+void yellow (const char *str) { print_ansi_str(str, COLOR_YELLOW); }
+void blue   (const char *str) { print_ansi_str(str, COLOR_BLUE); }
+void magenta(const char *str) { print_ansi_str(str, COLOR_MAGENTA); }
+void cyan   (const char *str) { print_ansi_str(str, COLOR_CYAN); }
+
+void bold     (const char *str) { print_ansi_str(str, STYLE_BOLD); }
+void underline(const char *str) { print_ansi_str(str, STYLE_UNDERLINE); }
+
+void
+bad(const char *str)
+{
+    red("[-] ");
+    fprintf(stderr, "%s\n", str);
+    
 }
 
-void info(strbuf_t *strbuf, char *str) {
-    add_to_strbuf_dystr(strbuf, bold(yellow("[!] ")));
-    add_to_strbuf_str  (strbuf, str);
+void
+good(const char *str)
+{
+    green("[+] ");
+    fprintf(stderr, "%s\n", str);
 }
 
-void run(strbuf_t *strbuf, char *str) {
-    add_to_strbuf_dystr(strbuf, bold("[~] "));
-    add_to_strbuf_str  (strbuf, str);
+void
+info(const char *str)
+{
+    yellow("[!] ");
+    fprintf(stderr, "%s\n", str);
 }
 
-void que(strbuf_t *strbuf, char *str) {
-    add_to_strbuf_dystr(strbuf, bold(blue("[?] ")));
-    add_to_strbuf_str  (strbuf, str);
+void
+run(const char *str)
+{
+    bold("[~] ");
+    fprintf(stderr, "%s\n", str);
+}
+
+void
+que(const char *str)
+{
+    blue("[?] ");
+    fprintf(stderr, "%s\n", str);
 }
 
 /////////////////////////////////////////////////////////

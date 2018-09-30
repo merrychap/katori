@@ -1,7 +1,6 @@
 #ifndef _COLORS_H_
 #define _COLORS_H_
 
-
 #define STRBUFSIZE         50
 #define STRING_APPEND_SIZE 50
 
@@ -19,49 +18,26 @@
 #define STYLE_BOLD         "\033[1m"
 #define STYLE_NO_BOLD      "\033[22m"
 
-
-typedef struct strbuf_t        strbuf_t;
-typedef struct strbuf_entity_t strbuf_entity_t;
-
-
 typedef enum {
-    large_index_error          = -1,
-    null_strbuf_error          = -2,
-    unable_to_remove_file      = -3,
-    file_doesnt_exist          = -4,
-    unable_to_open_file        = -5,
-    malloc_strbuf_entity_error = -6
+    SET_STR_ERROR = -1,
 } cli_utils_error_t;
 
-
-struct strbuf_t {
-    strbuf_entity_t *buf;
-    size_t size;
-    size_t count;
-};
-
-
-struct strbuf_entity_t {
-    char *entry;
-    int dynalloc;
-};
-
 /////////////// COLORED STRING PROCESSING ///////////////
-char * red    (char *str);
-char * green  (char *str);
-char * yellow (char *str);
-char * blue   (char *str);
-char * magenta(char *str);
-char * cyan   (char *str);
+void red    (const char *str);
+void green  (const char *str);
+void yellow (const char *str);
+void blue   (const char *str);
+void magenta(const char *str);
+void cyan   (const char *str);
 
-char * bold     (char *str);
-char * underline(char *str);
+void bold     (const char *str);
+void underline(const char *str);
 
-void bad (strbuf_t *strbuf, char *str);
-void good(strbuf_t *strbuf, char *str);
-void info(strbuf_t *strbuf, char *str);
-void run (strbuf_t *strbuf, char *str);
-void que (strbuf_t *strbuf, char *str);
+void bad (const char *str);
+void good(const char *str);
+void info(const char *str);
+void run (const char *str);
+void que (const char *str);
 /////////////////////////////////////////////////////////
 
 void term_reset(void);
@@ -71,15 +47,6 @@ void input_string(char *str, int size);
 int  input_choice(void);
 
 void clear_window(void);
-
-/////////////// STRING BUFFER FUNCTIONS ///////////////
-void       print_strbuf        (strbuf_t *strbuf);
-int        add_to_strbuf_str   (strbuf_t *strbuf, char * const str);
-int        add_to_strbuf_dystr (strbuf_t *strbuf, char * const str);
-int        add_to_strbuf_entity(strbuf_t *strbuf, strbuf_entity_t entity);
-strbuf_t * create_strbuf       (size_t size);
-int        destroy_strbuf      (strbuf_t *strbuf);
-///////////////////////////////////////////////////////
 
 FILE * reset_file(char *filename);
 

@@ -1,11 +1,13 @@
 #include "spoofing.h"
 
-
-static void print_spoofing_menu() {
+static void
+print_spoofing_menu(void)
+{
 
 }
 
-
-int spoofing_mode(strbuf_t *strbuf) {
+int
+spoofing_mode(void)
+{
     return 0;
 }
