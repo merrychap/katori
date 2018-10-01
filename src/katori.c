@@ -43,7 +43,14 @@ katori_new(struct katori_config_t *config)
     katori->config = config;
     
     if ((katori->listener = listener_new(config->interface)) == NULL) {
-        fatal("%s: failed to alloc network listener", __func__);
+        free(katori);
+        fatal("[-] failed to alloc network listener");
+    }
+
+    if ((katori->sniffer = sniffer_new(katori->listener)) == NULL) {
+        free(katori->listener);
+        free(katori);
+        fatal("[-] failed to alloc sniffer");
     }
 
     return katori;

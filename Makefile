@@ -10,8 +10,8 @@ LDFLAGS = -Wl,--as-needed `pkg-config --libs ${LIBS}`
 
 OBJ_KATORI = src/katori.o src/cli_utils.o src/cli.o \
 			 src/log.o src/netlistener.o src/sniffer.o \
-			 src/sniffing_utils.o src/spoofing.o src/utils.o \
-			 src/argparser.o
+			 src/packet.o src/spoofing.o src/utils.o \
+			 src/argparser.o src/sniffer_cli.o
 
 TARGETS = katori
 

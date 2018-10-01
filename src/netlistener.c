@@ -17,20 +17,12 @@
 #include "netlistener.h"
 #include "log.h"
 #include "utils.h"
+#include "packet.h"
 
 #define BUF_SIZE         65536
 #define INTERFACES_COUNT 100
 
 #define INTERFACE_NAME_LEN 256
-
-// static void
-// __process_packet(void *packet_struct)
-// {
-//     packet_arg_t *packet = (packet_arg_t *) packet_struct;
-//     sniffer_t *sniffer   = packet->sniffer;
-
-//     process_packet(sniffer, packet);
-// }
 
 static void
 listener_recv_cb(evutil_socket_t fd, short events, void *arg)
@@ -46,7 +38,7 @@ listener_recv_cb(evutil_socket_t fd, short events, void *arg)
     
     memset(&saddr, 0, sizeof(saddr));
 
-    // struct packet_arg_t packet;
+    struct packet_t packet;
 
     listener->is_online = 1;
 
@@ -57,10 +49,11 @@ listener_recv_cb(evutil_socket_t fd, short events, void *arg)
     if (data_size < 0)
         return;
 
-    // packet.buffer  = server->buffer;
-    // packet.size    = (size_t) data_size;
-    // packet.sniffer = server->sniffer;
+    packet.buffer  = listener->buffer;
+    packet.size    = (size_t) data_size;
+    // packet.sniffer = ->sniffer;
     
+    // TODO THIS PART
     // __process_packet(&packet);
 
 }
@@ -109,6 +102,61 @@ err1:
 err2:
     free(listener);
     return NULL;
+}
+
+int
+listener_add_handler(struct netlistener_t *listener,
+    void (*handler)(void *))
+{
+    if (listener == NULL)
+        return LISTENER_NULL_PTR;
+    if (handler == NULL)
+        return HANDLER_NULL_PTR;
+
+    size_t handlers_count    = listener->handlers_count;
+    size_t handlers_capacity = listener->handlers_capacity;
+
+    void *buf = NULL;
+    void (**handlers)(void *) = listener->handlers;
+    
+    if (handlers_count >= handlers_capacity) {
+        if (handlers_capacity == 0) {
+            listener->handlers = xmalloc_0(sizeof(handlers));
+            if (listener->handlers == NULL)
+                return HANDLER_NULL_PTR;
+            listener->handlers_capacity = 1;
+        } else {
+            buf = realloc(handlers, 2 * handlers_capacity * sizeof(handlers));
+            if (buf == NULL) {
+                free(handlers);
+                return REALLOC_HANDLERS_FAILED;
+            }
+            listener->handlers = buf;
+            listener->handlers_capacity *= 2;
+        }
+    }
+    
+    listener->handlers[listener->handlers_count++] = handler;
+
+    return 0;
+}
+
+int
+listener_remove_handler(struct netlistener_t *listener,
+    void (*handler)(void *))
+{
+    if (listener == NULL)
+        return LISTENER_NULL_PTR;
+    if (handler == NULL)
+        return HANDLER_NULL_PTR;
+
+    for (size_t i = 0; i < listener->handlers_count; i++) {
+        if (handler == listener->handlers[i]) {
+            /* TODO: complete removing */
+        }
+    }
+
+    return 0;
 }
 
 int

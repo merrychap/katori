@@ -22,15 +22,7 @@ struct sniffer_t {
     size_t others;
 };
 
-struct packet_arg_t {
-    struct sniffer_t *sniffer;
-    unsigned char *buffer;
-    size_t size;
-};
-
-struct sniffer_t * sniffer_new(FILE *logfile);
+struct sniffer_t * sniffer_new(struct netlistener_t *listener);
 int sniffer_free(struct sniffer_t *sniffer);
-
-int sniffing_mode(const struct katori_t *katori);
 
 #endif

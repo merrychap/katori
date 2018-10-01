@@ -4,7 +4,7 @@
 
 #include "cli.h"
 #include "spoofing.h"
-#include "sniffer.h"
+#include "sniffer_cli.h"
 
 static void
 print_welcome_header(void)
@@ -49,7 +49,7 @@ start_prompt(const struct katori_t *katori)
 
         switch (choice) {
             case 1:
-                sniffing_mode(katori);
+                sniffing_mode(katori->sniffer);
                 break;
             case 2:
                 spoofing_mode();

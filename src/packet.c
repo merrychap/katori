@@ -18,7 +18,7 @@
 #include <errno.h>
 #include <netdb.h>
 
-#include "sniffing_utils.h"
+#include "packet.h"
 
 void
 print_raw_data(FILE *logfile, unsigned char* data, size_t size)
@@ -39,7 +39,7 @@ print_raw_data(FILE *logfile, unsigned char* data, size_t size)
 }
 
 void
-parse_ethernet_header(FILE * logfile, struct packet_arg_t *packet)
+parse_ethernet_header(FILE * logfile, struct packet_t *packet)
 {
     struct ethhdr *eth = (struct ethhdr *)packet->buffer;
      
@@ -51,15 +51,15 @@ parse_ethernet_header(FILE * logfile, struct packet_arg_t *packet)
 }
 
 void
-parse_ip_header(FILE * logfile, struct packet_arg_t *packet)
+parse_ip_header(FILE * logfile, struct packet_t *packet)
 {
     parse_ethernet_header(logfile, packet);
    
-    unsigned short iphdrlen;
+    // unsigned short iphdrlen;
     struct sockaddr_in source, dest;
          
     struct iphdr *iph = (struct iphdr *)(packet->buffer + sizeof(struct ethhdr) );
-    iphdrlen = iph->ihl * 4;
+    // iphdrlen = iph->ihl * 4;
      
     memset(&source, 0, sizeof(source));
     memset(&dest,   0, sizeof(dest));
@@ -85,7 +85,7 @@ parse_ip_header(FILE * logfile, struct packet_arg_t *packet)
 }
 
 static void
-parse_tcp_packet(FILE *logfile, struct packet_arg_t *packet)
+parse_tcp_packet(FILE *logfile, struct packet_t *packet)
 {
     unsigned short iphdrlen;
      
@@ -135,26 +135,31 @@ parse_tcp_packet(FILE *logfile, struct packet_arg_t *packet)
 }
 
 static void
-parse_udp_packet (FILE *logfile, struct packet_arg_t *packet)
+parse_udp_packet (FILE *logfile, struct packet_t *packet)
 {
 
 }
 
 static void
-parse_arp_packet (FILE *logfile, struct packet_arg_t *packet)
+parse_arp_packet (FILE *logfile, struct packet_t *packet)
 {
 
 }
 
 static void
-parse_icmp_packet(FILE *logfile, struct packet_arg_t *packet)
+parse_icmp_packet(FILE *logfile, struct packet_t *packet)
 {
 
 }
 
-void
-process_packet(struct sniffer_t *sniffer, struct packet_arg_t *packet)
+int
+process_packet(struct sniffer_t *sniffer, struct packet_t *packet)
 {
+    if (sniffer == NULL)
+        return SNIFFER_NULL_PTR;
+    if (packet == NULL)
+        return PACKET_NULL_PTR;
+    
     FILE * logfile          = sniffer->logfile;
     struct iphdr *ip_header = (struct iphdr *) (packet->buffer + sizeof(struct ethhdr));
 
@@ -175,4 +180,5 @@ process_packet(struct sniffer_t *sniffer, struct packet_arg_t *packet)
             sniffer->others++;
             break;
     }
+    return 0;
 }

@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "netlistener.h"
+#include "sniffer.h"
 
 typedef enum {
     LOGFILE_NULL_PTR       = -1,
@@ -17,6 +18,8 @@ struct katori_t {
     struct katori_config_t *config;
 
     struct netlistener_t *listener;
+
+    struct sniffer_t *sniffer;
 };
 
 struct katori_config_t {
