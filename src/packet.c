@@ -21,7 +21,7 @@
 #include "packet.h"
 
 void
-print_raw_data(FILE *logfile, unsigned char* data, size_t size)
+write_raw_data(FILE *logfile, unsigned char* data, size_t size)
 {
     size_t chunk_size = 16;
     for (size_t chunk_id = 0; chunk_id + chunk_size < size; chunk_id += chunk_size) {
@@ -39,7 +39,7 @@ print_raw_data(FILE *logfile, unsigned char* data, size_t size)
 }
 
 void
-parse_ethernet_header(FILE * logfile, struct packet_t *packet)
+write_ethernet_header(FILE * logfile, struct packet_t *packet)
 {
     struct ethhdr *eth = (struct ethhdr *)packet->buffer;
      
@@ -51,9 +51,9 @@ parse_ethernet_header(FILE * logfile, struct packet_t *packet)
 }
 
 void
-parse_ip_header(FILE * logfile, struct packet_t *packet)
+write_ip_header(FILE * logfile, struct packet_t *packet)
 {
-    parse_ethernet_header(logfile, packet);
+    write_ethernet_header(logfile, packet);
    
     // unsigned short iphdrlen;
     struct sockaddr_in source, dest;
@@ -84,8 +84,8 @@ parse_ip_header(FILE * logfile, struct packet_t *packet)
     fprintf(logfile, "   |-Destination IP   : %s\n", inet_ntoa(dest.sin_addr));
 }
 
-static void
-parse_tcp_packet(FILE *logfile, struct packet_t *packet)
+void
+write_tcp_packet(FILE *logfile, struct packet_t *packet)
 {
     unsigned short iphdrlen;
      
@@ -97,7 +97,7 @@ parse_tcp_packet(FILE *logfile, struct packet_t *packet)
      
     fprintf(logfile , "\n\n***********************TCP Packet*************************\n");
          
-    parse_ip_header(logfile, packet);
+    write_ip_header(logfile, packet);
          
     fprintf(logfile, "\n");
     fprintf(logfile, "TCP Header\n");
@@ -122,63 +122,32 @@ parse_tcp_packet(FILE *logfile, struct packet_t *packet)
     fprintf(logfile, "\n");
          
     fprintf(logfile, "IP Header\n");
-    print_raw_data(logfile, packet->buffer, iphdrlen);
+    write_raw_data(logfile, packet->buffer, iphdrlen);
          
     fprintf(logfile, "TCP Header\n");
-    print_raw_data(logfile, packet->buffer+iphdrlen, tcph->doff*4);
+    write_raw_data(logfile, packet->buffer+iphdrlen, tcph->doff*4);
          
     fprintf(logfile , "Data Payload\n");
     size_t data_size = (packet->size > header_size) ? packet->size - header_size : 0;
-    print_raw_data(logfile, packet->buffer + header_size, data_size);
+    write_raw_data(logfile, packet->buffer + header_size, data_size);
                          
     fprintf(logfile , "\n###########################################################");
 }
 
-static void
-parse_udp_packet (FILE *logfile, struct packet_t *packet)
+void
+write_udp_packet (FILE *logfile, struct packet_t *packet)
 {
 
 }
 
-static void
-parse_arp_packet (FILE *logfile, struct packet_t *packet)
+void
+write_arp_packet(FILE *logfile, struct packet_t *packet)
 {
 
 }
 
-static void
-parse_icmp_packet(FILE *logfile, struct packet_t *packet)
+void
+write_icmp_packet(FILE *logfile, struct packet_t *packet)
 {
 
-}
-
-int
-process_packet(struct sniffer_t *sniffer, struct packet_t *packet)
-{
-    if (sniffer == NULL)
-        return SNIFFER_NULL_PTR;
-    if (packet == NULL)
-        return PACKET_NULL_PTR;
-    
-    FILE * logfile          = sniffer->logfile;
-    struct iphdr *ip_header = (struct iphdr *) (packet->buffer + sizeof(struct ethhdr));
-
-    switch (ip_header->protocol) {
-        case 1:
-            sniffer->icmp++;
-            parse_icmp_packet(logfile, packet);
-            break;
-        case 6:
-            parse_tcp_packet(logfile, packet);
-            sniffer->tcp++;
-            break;
-        case 17:
-            parse_udp_packet(logfile, packet);
-            sniffer->udp++;
-            break;
-        default:
-            sniffer->others++;
-            break;
-    }
-    return 0;
 }

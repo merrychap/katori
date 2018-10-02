@@ -3,9 +3,6 @@
 
 #include <stdint.h>
 
-#include "sniffer.h"
-
-struct sniffer_t;
 struct netlistener_t;
 
 typedef enum {
@@ -13,12 +10,16 @@ typedef enum {
 } packet_error_t;
 
 struct packet_t {
-    struct sniffer_t *sniffer;
     uint8_t *buffer;
     size_t size;
 };
 
-int process_packet(struct sniffer_t *sniffer,
-    struct packet_t *packet);
+void write_raw_data(FILE *logfile, unsigned char* data, size_t size);
+void write_ethernet_header(FILE * logfile, struct packet_t *packet);
+void write_ip_header(FILE * logfile, struct packet_t *packet);
+void write_tcp_packet(FILE *logfile, struct packet_t *packet);
+void write_udp_packet (FILE *logfile, struct packet_t *packet);
+void write_arp_packet(FILE *logfile, struct packet_t *packet);
+void write_icmp_packet(FILE *logfile, struct packet_t *packet);
 
 #endif

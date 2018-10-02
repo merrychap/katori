@@ -6,6 +6,7 @@
 #include "katori.h"
 #include "cli_utils.h"
 #include "netlistener.h"
+#include "packet.h"
 
 typedef enum {
     SNIFFER_NULL_PTR = -1
@@ -24,5 +25,7 @@ struct sniffer_t {
 
 struct sniffer_t * sniffer_new(struct netlistener_t *listener);
 int sniffer_free(struct sniffer_t *sniffer);
+
+void sniffer_capture_packet(struct packet_t *packet, void *arg);
 
 #endif

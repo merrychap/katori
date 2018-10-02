@@ -20,7 +20,7 @@ CPPFLAGS = -DDEBUG
 all: ${TARGETS}
 
 katori: ${OBJ_KATORI}
-	${CC} ${OBJ_KATORI} ${LDFLAGS} -o katori
+	${CC} ${OBJ_KATORI} ${LDFLAGS} -lpthread -o katori
 
 
 .PHONY: clean

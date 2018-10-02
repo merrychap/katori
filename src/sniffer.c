@@ -3,6 +3,8 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+#include <netinet/ip.h>
+#include <netinet/if_ether.h>
 
 #include "sniffer.h"
 #include "utils.h"
@@ -10,16 +12,6 @@
 #include "log.h"
 
 #define MAX_LOGFILE_LEN 1000
-
-void
-__process_packet(void *arg)
-{
-    struct packet_t *packet   = arg;
-    struct sniffer_t *sniffer = packet->sniffer;
-
-    if (process_packet(sniffer, packet) < 0)
-        fatal("[-] failed to process a packet");
-}
 
 struct sniffer_t *
 sniffer_new(struct netlistener_t *listener)
@@ -40,7 +32,7 @@ sniffer_new(struct netlistener_t *listener)
     sniffer->udp      = 0;
     sniffer->others   = 0;
 
-    if (listener_add_handler(listener, __process_packet) < 0)
+    if (listener_add_handler(listener, sniffer_capture_packet, sniffer) < 0)
         fatal("[-] failed to add handler to network listener");
     
     return sniffer;
@@ -58,4 +50,36 @@ sniffer_free(struct sniffer_t *sniffer)
     free(sniffer);
     
     return 0;
+}
+
+void
+sniffer_capture_packet(struct packet_t *packet, void *arg)
+{
+    struct sniffer_t *sniffer = arg;
+
+    if (sniffer == NULL)
+        return;
+    if (packet == NULL)
+        return;
+    
+    FILE * logfile          = sniffer->logfile;
+    struct iphdr *ip_header = (struct iphdr *) (packet->buffer + sizeof(struct ethhdr));
+
+    switch (ip_header->protocol) {
+        case 1:
+            sniffer->icmp++;
+            write_icmp_packet(logfile, packet);
+            break;
+        case 6:
+            write_tcp_packet(logfile, packet);
+            sniffer->tcp++;
+            break;
+        case 17:
+            write_udp_packet(logfile, packet);
+            sniffer->udp++;
+            break;
+        default:
+            sniffer->others++;
+            break;
+    }
 }
