@@ -6,9 +6,6 @@
 
 If you agree with the above statements, you may proceed to use this tool for anything legal.
 
-## INFO
-This is **unbuild version** (I'm rewriting a lot of things right now). Yeah, it's should be in another branch and I very sorry about it, but I'm too lazy to fix it right now. It will be fixed very very soon, I promise!
-
 ## General info
 
 `katori` is a tool to work with a network. it's both a sniffer and attacks provider (only few features is implemented for now).
