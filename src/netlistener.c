@@ -29,11 +29,32 @@
 #define OFFLINE_COMMAND "OFF"
 
 static void
+listener_handlers_run(struct netlistener_t *listener, struct packet_t *pkt)
+{
+    if (pthread_mutex_lock(&listener->lock) != 0)
+        fatal("[-] failed to lock listener's mutex");
+
+    for (size_t i = 0; i < listener->__handlers_count; i++) {
+        if (!listener->__handlers[i]->active)
+            continue;
+
+        if (handler_run(listener->__handlers[i], pkt) < 0)
+            fatal("[-] failed to run handler");
+    }
+
+    if (pthread_mutex_unlock(&listener->lock) != 0)
+        fatal("[-] failed to unlock listener's mutex");
+}
+
+static void
 listener_recv_cb(evutil_socket_t fd, short events, void *arg)
 {
     struct netlistener_t *listener = arg;
 
-    if (!listener->is_online)
+    if (pthread_mutex_unlock(&listener->lock) != 0)
+        fatal("failde to unlock listener mutex");
+
+    if (!listener_online(listener))
         return;
 
     struct sockaddr saddr;
@@ -44,7 +65,7 @@ listener_recv_cb(evutil_socket_t fd, short events, void *arg)
 
     struct packet_t packet;
 
-    listener->is_online = 1;
+    listener_set_online(listener);
 
     saddr_size = sizeof(saddr);
     data_size = recvfrom(listener->fd, listener->buffer, BUF_SIZE, 0,
@@ -56,16 +77,16 @@ listener_recv_cb(evutil_socket_t fd, short events, void *arg)
     packet.buffer  = listener->buffer;
     packet.size    = (size_t) data_size;
     
-    for (size_t i = 0; i < listener->__handlers_count; i++) {
-        listener->__handlers[i](&packet, listener->__handlers_args[i]);
-    }
-
+    listener_handlers_run(listener, &packet);
 }
 
 static void
 listener_com_cb(evutil_socket_t fd, short events, void *arg)
 {
     struct netlistener_t *listener = arg;
+
+    if (pthread_mutex_lock(&listener->lock) != 0)
+        fatal("[-] failed to lock listener's mutex");
 
     ssize_t bytes;
     uint8_t buf[BUF_SIZE];
@@ -80,6 +101,76 @@ listener_com_cb(evutil_socket_t fd, short events, void *arg)
     if (memcmp(buf, OFFLINE_COMMAND, bytes) == 0) {
         event_base_loopexit(listener->evb, NULL);
     }
+
+    if (pthread_mutex_unlock(&listener->lock) != 0)
+        fatal("[-] failed to unlock listener's mutex");
+}
+
+struct handler_t *
+handler_new(void (*func)(struct packet_t *, void *),
+    void *arg)
+{
+    if (func == NULL) return NULL;
+    if (arg  == NULL) return NULL;
+    
+    struct handler_t *handler = xmalloc_0(sizeof(struct handler_t));
+
+    if (handler == NULL)
+        return NULL;
+
+    handler->handler = func;
+    handler->arg     = arg;
+
+    return handler;
+}
+
+int
+handler_run(struct handler_t *handler, struct packet_t *pkt)
+{
+    if (handler == NULL)
+        return HANDLER_NULL_PTR;
+    if (pkt == NULL)
+        return PACKET_NULL_PTR;
+
+    handler->handler(pkt, handler->arg);
+
+    return 0;
+}
+
+int
+handler_register(struct handler_t *handler)
+{
+    if (handler == NULL)
+        return HANDLER_NULL_PTR;
+
+    handler->active = true;
+
+    return 0;
+}
+
+int
+handler_unregister(struct handler_t *handler)
+{
+    if (handler == NULL)
+        return HANDLER_NULL_PTR;
+
+    handler->active = false;
+
+    return 0;
+}
+
+int
+handler_free(struct handler_t *handler)
+{
+    if (handler == NULL)
+        return HANDLER_NULL_PTR;
+
+    handler->handler = NULL;
+    handler->arg     = NULL;
+    
+    free(handler);
+
+    return 0;
 }
 
 struct netlistener_t *
@@ -113,11 +204,16 @@ listener_new(const char *interface)
         goto err1;
     }
 
+    listener->__listener = xmalloc_0(sizeof(pthread_t));
+
+    if (pthread_mutex_init(&listener->lock, NULL) != 0)
+        fatal("failed to init lock");
+
     if ((listener->evb = event_base_new()) == NULL)
         fatal("failed to create listener event base");
     
     if ((listener->ev_recv = event_new(listener->evb, listener->fd, 
-        EV_READ | EV_PERSIST, listener_recv_cb, listener)) == NULL)
+        EV_READ | EV_WRITE | EV_PERSIST, listener_recv_cb, listener)) == NULL)
         fatal("failed to create recv event");
 
     if ((listener->ev_com = event_new(listener->evb, listener->com_fd,
@@ -127,8 +223,8 @@ listener_new(const char *interface)
     if (event_add(listener->ev_com, NULL) < 0)
         fatal("failed to add communication event");
 
-    if (pthread_mutex_init(&listener->lock, NULL) != 0)
-        fatal("failed to init lock");
+    if (event_add(listener->ev_recv, NULL) < 0)
+        fatal("[-] failed to add netlistener recv event");
     
     listener_set_offline(listener);
 
@@ -143,41 +239,32 @@ err2:
 
 int
 listener_add_handler(struct netlistener_t *listener,
-    void (*handler)(struct packet_t *, void *), void *arg)
+    struct handler_t *handler)
 {
     if (listener == NULL)
         return LISTENER_NULL_PTR;
     if (handler == NULL)
         return HANDLER_NULL_PTR;
 
+    int ret = 0;
+
+    if (pthread_mutex_lock(&listener->lock) != 0)
+        fatal("[-] failed to lock listener's mutex");
+
     size_t handlers_count    = listener->__handlers_count;
     size_t handlers_capacity = listener->__handlers_capacity;
-    
-    size_t handlers_arg_count    = listener->__handlers_args_count;
-    size_t handlers_arg_capacity = listener->__handlers_args_capacity;
-
-    assert(handlers_count == handlers_arg_count);
-    assert(handlers_capacity == handlers_arg_capacity);
 
     void *buf_handlers = NULL;
-    void *buf_args     = NULL;
     
-    void (**handlers)(struct packet_t *, void *) = listener->__handlers;
-    void **handlers_args = listener->__handlers_args;
+    struct handler_t **handlers = listener->__handlers;
     
     if (handlers_count >= handlers_capacity) {
         if (handlers_capacity == 0) {
             listener->__handlers = xmalloc_0(sizeof(handlers));
-            listener->__handlers_args = xmalloc_0(sizeof(handlers_args));
-            
             if (listener->__handlers == NULL)
                 return HANDLER_NULL_PTR;
-
-            if (listener->__handlers_args == NULL)
-                return HANDLER_ARG_NULL_PTR;
             
             listener->__handlers_capacity = 1;
-            listener->__handlers_args_capacity = 1;
         } else {
             buf_handlers = realloc(handlers, 2 * handlers_capacity * sizeof(handlers));
             if (buf_handlers == NULL) {
@@ -185,40 +272,40 @@ listener_add_handler(struct netlistener_t *listener,
                 return REALLOC_HANDLERS_FAILED;
             }
 
-            buf_args = realloc(handlers_args, 2 * handlers_arg_capacity * sizeof(handlers_args));
-            if (buf_args == NULL) {
-                free(handlers_args);
-                return REALLOC_HANDLERS_ARGS_FAILED;
-            }
-
             listener->__handlers = buf_handlers;
-            listener->__handlers_args = buf_args;
-            
             listener->__handlers_capacity *= 2;
-            listener->__handlers_args_capacity *= 2;
         }
     }
     
+    ret = listener->__handlers_count;
     listener->__handlers[listener->__handlers_count++] = handler;
-    listener->__handlers_args[listener->__handlers_args_count++] = arg;
 
-    return 0;
+    if (pthread_mutex_unlock(&listener->lock) != 0)
+        fatal("[-] failed to unlock listener's mutex");
+
+    return ret;
 }
 
 int
 listener_remove_handler(struct netlistener_t *listener,
-    void (*handler)(struct packet_t *, void *))
+    struct handler_t *handler)
 {
     if (listener == NULL)
         return LISTENER_NULL_PTR;
     if (handler == NULL)
         return HANDLER_NULL_PTR;
 
+    if (pthread_mutex_lock(&listener->lock) != 0)
+        fatal("[-] failed to lock listener's mutex");
+
     for (size_t i = 0; i < listener->__handlers_count; i++) {
         if (handler == listener->__handlers[i]) {
             /* TODO: complete removing */
         }
     }
+
+    if (pthread_mutex_unlock(&listener->lock) != 0)
+        fatal("[-] failed to unlock listener's mutex");
 
     return 0;
 }
@@ -274,10 +361,7 @@ __listener_run_inner(void *arg)
 
     listener_set_online(listener);
 
-    if (event_add(listener->ev_recv, NULL) < 0)
-        fatal("[-] failed to add netlistener recv event");
-    
-    if (event_base_dispatch(listener->evb) < 0)
+    if (event_base_loop(listener->evb, EVLOOP_NONBLOCK) < 0)
         fatal("failed to dispatch network listener");
 
     pthread_exit(NULL);
@@ -287,14 +371,11 @@ __listener_run_inner(void *arg)
 int
 listener_run(struct netlistener_t *listener)
 {
-    pthread_t listen_run;
-
-    if (pthread_create(&listen_run, NULL,
+    if (pthread_create(listener->__listener, NULL,
         __listener_run_inner, (void *) listener) != 0)
-        fatal("%s: failed to create listener_run thread");
+        fatal("[-] failed to create listener_run thread");
 
-    if (pthread_join(listen_run, NULL) != 0)
-        fatal("%s: failed to join listener_run");
+    // __listener_run_inner(listener);
 
     return 0;
 }
@@ -313,6 +394,9 @@ listener_stop(struct netlistener_t *listener)
         return WRITE_ERROR;
 
     listener_set_offline(listener);
+
+    if (pthread_join(*(listener->__listener), NULL) != 0)
+        fatal("[-] failed to join listener_run");
 
     return 0;
 }
@@ -335,7 +419,7 @@ listener_free(struct netlistener_t *listener)
     
     free(listener->buffer);
     free(listener->__handlers);
-    free(listener->__handlers_args);
+    free(listener->__listener);
     
     event_base_free(listener->evb);
     
@@ -345,12 +429,11 @@ listener_free(struct netlistener_t *listener)
     if (pthread_mutex_destroy(&listener->lock) != 0)
         fatal("failed to destroy listener lock");
 
-    listener->logfile = NULL;
+    // listener->logfile = NULL;
     listener->evb     = NULL;
     listener->ev_recv = NULL;
     
     listener->__handlers     = NULL;
-    listener->__handlers_args = NULL;
 
     listener->katori = NULL;
     

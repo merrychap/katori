@@ -4,12 +4,12 @@
 
 #include "cli.h"
 #include "spoofing.h"
-#include "sniffer_cli.h"
+#include "sniffer/sniffer_cli.h"
 
 static void
 print_welcome_header(void)
 {
-    clear_window();
+    // clear_window();
 
     fprintf(stdout, COLOR_YELLOW "/////////////////////////\n" COLOR_RESET);
     fprintf(stdout, COLOR_BLUE "   katori " COLOR_RESET "greets you!\n");

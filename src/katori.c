@@ -8,6 +8,7 @@
 #include "cli.h"
 #include "argparser.h"
 #include "log.h"
+#include "netlistener.h"
 
 #define PROJ_NAME "katori"
 
@@ -47,7 +48,8 @@ katori_new(struct katori_config_t *config)
         fatal("[-] failed to alloc network listener");
     }
 
-    if ((katori->sniffer = sniffer_new(katori->listener)) == NULL) {
+    if ((katori->sniffer = sniffer_new(katori->listener,
+        katori->config->logfile)) == NULL) {
         free(katori->listener);
         free(katori);
         fatal("[-] failed to alloc sniffer");
@@ -61,6 +63,8 @@ katori_run(const struct katori_t *katori)
 {
     if (katori == NULL)
         return KATORI_NULL_PTR;
+
+    listener_run(katori->listener);
 
     start_prompt(katori);
 

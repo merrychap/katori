@@ -34,9 +34,10 @@ struct netlistener_t {
     uint8_t *buffer;
 
     pthread_mutex_t lock;
+    pthread_t *__listener;
 
     int mode;
-    FILE *logfile;
+    // FILE *logfile;
     const char *interface;
     
     struct event_base *evb;
@@ -44,23 +45,40 @@ struct netlistener_t {
     struct event *ev_recv;
     struct event *ev_com;
 
-    void (**__handlers)(struct packet_t *, void *);
+    struct handler_t **__handlers;
     size_t __handlers_count;
     size_t __handlers_capacity;
-
-    void **__handlers_args;
-    size_t __handlers_args_count;
-    size_t __handlers_args_capacity;
 
     struct katori_t *katori;
 };
 
+struct handler_t {
+    void (*handler)(struct packet_t *, void *);
+    void *arg;
+
+    bool active;
+};
+
+////////// HANDLER ////////////
+struct handler_t * handler_new(void (*func)(struct packet_t *, void *),
+    void *arg);
+
+int handler_run(struct handler_t *handler, struct packet_t *pkt);
+int handler_register(struct handler_t *handler);
+int handler_unregister(struct handler_t *handler);
+
+int handler_free(struct handler_t *handler);
+///////////////////////////////
+
+////////// LISTENER ////////////
 struct netlistener_t * listener_new(const char *interface);
 
 int listener_add_handler(struct netlistener_t *listener,
-    void (*handler)(struct packet_t *, void *), void *arg);
+    struct handler_t *handler);
 int listener_remove_handler(struct netlistener_t *listener,
-    void (*handler)(struct packet_t *, void *));
+    struct handler_t *handler);
+struct handler_t *listener_get_handler(struct netlistener_t *listener,
+    size_t index);
 
 bool listener_online(struct netlistener_t *listener);
 int listener_set_online(struct netlistener_t *listener);
@@ -71,5 +89,5 @@ int listener_stop(struct netlistener_t *listener);
 int listener_resume(struct netlistener_t *listener);
 
 int listener_free(struct netlistener_t *listener);
-
+////////////////////////////////
 #endif

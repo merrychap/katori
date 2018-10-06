@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "netlistener.h"
-#include "sniffer.h"
+#include "sniffer/sniffer.h"
 
 typedef enum {
     LOGFILE_NULL_PTR       = -1,

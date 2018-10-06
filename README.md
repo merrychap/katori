@@ -17,13 +17,25 @@ Project is under development, so it's far away from expected tool.
 
 ## Features
 
-For now, only `sniffing` option is available. You can specify your interface and file for logging and after this go to `monitor` to see sniffing status.
+FEATURES WILL BE ADDED SOON
 
-## How to build and run
+## How to build
+
+You can build `katori` by using `make` like this:
 
 ```sh
-$ make && sudo src/main && make clean
+$ cd ./katori
+$ make
 ```
 
-Of course, I will add `make install` option soon.
-Note that you have to run it using **sudo**, cause sniffing requires privileges
+Of course, `make install` option will be added soon.
+
+## How to run
+
+HOW TO RUN WILL BE ADDED SOON
+
+```sh
+$ sudo ./katori -i wlan0 -l /tmp/log
+```
+
+Note that you have to run it using **sudo**, cause sniffing requires root privileges

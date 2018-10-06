@@ -56,7 +56,7 @@ prerun(void)
 }
 
 int
-sniffing_mode(const struct sniffer_t *sniffer)
+sniffing_mode(struct sniffer_t *sniffer)
 {
     int choice    = 0;
     int err_code  = 0;
@@ -68,7 +68,7 @@ sniffing_mode(const struct sniffer_t *sniffer)
 
     while (!exit_flag) {
         print_sniffing_menu();
-
+        
         choice = input_choice();
         fprintf(stderr, "\n");
 
@@ -76,10 +76,11 @@ sniffing_mode(const struct sniffer_t *sniffer)
             case 1: // Change settings
                 break;
             case 2: // Start sniffer
+                sniffer_start(sniffer);
                 run("Sniffer started!");
                 break;
             case 3: // Stop sniffer
-                // server->is_online = 0;
+                sniffer_stop(sniffer);
                 good("Sniffer stopped!");
                 break;
             case 4: // Monitor

@@ -3,6 +3,6 @@
 
 #include "sniffer.h"
 
-int sniffing_mode(const struct sniffer_t *sniffer);
+int sniffing_mode(struct sniffer_t *sniffer);
 
 #endif
